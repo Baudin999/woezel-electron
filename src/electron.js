@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const chokidar = require("chokidar");
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -7,10 +8,12 @@ let mainWindow;
 
 function createWindow() {
     let watcher;
-    const mode = process.env.NODE_ENV;
+    const mode = process.env.NODE_ENV.trim();
+
     mainWindow = new BrowserWindow({
         width: 2000,
         height: 1200,
+        worldSafeExecuteJavaScript: true
     });
 
     mainWindow.loadURL(`file://${path.join(__dirname, '../public/index.html')}`);
@@ -21,10 +24,18 @@ function createWindow() {
         }
     });
 
-    if (process.env.NODE_ENV === 'development') {
-        watcher = require('chokidar').watch(path.join(__dirname, '../public/bundle.js'), { ignoreInitial: true });
-        watcher.on('change', () => {
-            mainWindow.reload();
+    // Here we deal with changed files in DEV situations.
+    let wait;
+    if (mode === 'development') {
+        watcher = chokidar.watch(path.join(__dirname, '../public/**/*'), { ignoreInitial: true });
+        watcher.on('all', () => {
+            if (wait) {
+                clearTimeout(wait);
+            }
+            wait = setTimeout(() => {
+                mainWindow.reload();
+                wait = null;
+            }, 1000);
         });
     }
 

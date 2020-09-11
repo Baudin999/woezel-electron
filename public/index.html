@@ -10,11 +10,28 @@
 	<link rel='icon' type='image/png' href='favicon.png'>
 	<link rel='stylesheet' href='global.css'>
 	<link rel='stylesheet' href='build/bundle.css'>
-
-	<script defer src='build/bundle.js'></script>
+	<link rel='stylesheet' href='build/styles.css'>
 </head>
 
 <body>
+	<script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
+	<script>
+		require.config({ paths: { vs: '../node_modules/monaco-editor/min/vs' } });
+
+		require(['vs/editor/editor.main'], function () {
+			window.monaco = monaco;
+			addScript("build/bundle.js");
+		});
+
+		function addScript(src) {
+			var s = document.createElement('script');
+			s.setAttribute('src', src);
+			document.body.appendChild(s);
+		}
+	</script>
 </body>
+
+
+
 
 </html>
