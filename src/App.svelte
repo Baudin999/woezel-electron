@@ -11,6 +11,7 @@
   <div on:click={() => navigateTo('/home')}>Home</div>
   <div on:click={() => navigateTo('/projects')}>Projects</div>
   <div on:click={() => navigateTo('/lang-tester')}>Language Tester</div>
+  <div on:click={() => navigateTo('/page-viewer')}>Page Viewer</div>
   <div on:click={() => navigateTo('/something')}>Not Found</div>
 </div>
 <Router {routes} />
