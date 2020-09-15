@@ -10,7 +10,7 @@
     "pure-electron": "electron .",
     "electron": "concurrently \"npm run dev-web\" \"npm run pure-electron\"",
     "validate": "svelte-check",
-    "test": "mocha -r ts-node/register --watch-extensions ts --watch-files ./src/**/*.ts ./tests/**/*.test.ts -w",
+    "test": "mocha --project ./tests/tsconfig.json --require ts-node/register --extensions ts --watch --watch-files src 'tests/**/*.test.ts'",
     "coverage": "nyc -r lcov -e .ts -x \"*.test.ts\" npm run test"
   },
   "devDependencies": {

@@ -11,7 +11,7 @@ function createWindow() {
     const mode = process.env.NODE_ENV.trim();
 
     mainWindow = new BrowserWindow({
-        width: 2000,
+        width: 3000,
         height: 1200,
         worldSafeExecuteJavaScript: true
     });

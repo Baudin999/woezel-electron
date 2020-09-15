@@ -5,3 +5,6 @@
 /.vscode
 /coverage
 /.nyc_output
+
+
+**/report.*.json
