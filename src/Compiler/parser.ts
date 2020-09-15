@@ -18,7 +18,7 @@ export const parser = (tokenList: IToken[]) => {
     }
     let context = 0;
     let ast = [];
-    let errors = [];
+    let errors: Error[] = [];
 
     let _take = (kind?: SyntaxKind) => {
         _parseContextNewline();
@@ -31,9 +31,17 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
 
     while (index < max) {
         if (_current().kind == SyntaxKind.LetKeywordToken) {
-            context++;
-            ast.push(VariableDeclaration());
-            context--;
+            try {
+                context++;
+                ast.push(VariableDeclaration());
+                context--;
+            } catch (error) {
+                errors.push(error);
+                // because we do not want to really stop paring we'll just negate this block and
+                // continue when we know we're right.
+                while (_current().kind != SyntaxKind.SemicolonToken && index < max) index++;
+                _take();
+            }
         }
         else if (_current().kind == SyntaxKind.NewLine) {
             index++;
@@ -73,6 +81,7 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
     }
 
     function _parseExpression() {
+        _parseContextNewline();
         var left = _parseExpressionBuilder();
 
         if (_isOperator()) {
@@ -106,8 +115,6 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
     }
 
     function _parseExpressionBuilder() {
-        _parseContextNewline();
-
         if (_is(SyntaxKind.IdentifierToken)) return _parseIdenitifier();
         else if (_is(SyntaxKind.StringLiteralToken)) {
             return {

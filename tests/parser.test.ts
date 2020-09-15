@@ -52,4 +52,32 @@ let foo =
         assert.equal(ast[0].kind, ExpressionKind.VariableDeclaration);
     });
 
+    it('parse code 6', function () {
+        let code = `
+let foo = (2 
+    + 3) 
+                    - 4;
+let bar = 2;
+`;
+        let tokens = lex(code);
+        let { ast, errors } = parser(tokens);
+        // console.log(JSON.stringify(ast, null, 4));
+        assert.equal(ast[0].kind, ExpressionKind.VariableDeclaration);
+    });
+
+    it('parse code 7', function () {
+        let code = `
+let foo = (2 
+    + 3) 
+                    - 4;
+let bar 
+= 2;
+`;
+        let tokens = lex(code);
+        let { ast, errors } = parser(tokens);
+        // console.log(JSON.stringify(ast, null, 4));
+        assert.equal(ast[0].kind, ExpressionKind.VariableDeclaration);
+        assert.equal(errors.length, 1);
+    });
+
 });
