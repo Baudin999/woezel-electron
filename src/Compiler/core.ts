@@ -1,3 +1,5 @@
+import { CharacterCodes } from "./types";
+
 /**
      * Type of objects whose values are all of the same type.
      * The `in` and `for-in` operators can *not* be safely used,
@@ -31,3 +33,25 @@ const _entries = Object.entries || (<T>(obj: MapLike<T>) => {
 export function getEntries<T>(obj: MapLike<T>): [string, T][] {
     return obj ? _entries(obj) : [];
 }
+
+export const operators = [
+    CharacterCodes.equals,          // =
+    CharacterCodes.colon,           // :
+    CharacterCodes.ampersand,       // &
+    CharacterCodes.openParen,       // (
+    CharacterCodes.closeParen,      // )
+    CharacterCodes.openBracket,     // [
+    CharacterCodes.closeBracket,    // ]
+    CharacterCodes.greaterThan,     // >
+    CharacterCodes.lessThan,        // <
+
+    CharacterCodes.plus,            // +
+    CharacterCodes.minus,           // -
+    CharacterCodes.asterisk,        // *
+    CharacterCodes.slash,           // /
+    CharacterCodes.percent,         // %
+    CharacterCodes.caret,           // ^
+
+    CharacterCodes.dot,             // .
+    CharacterCodes.comma,           // .
+];

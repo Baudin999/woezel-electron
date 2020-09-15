@@ -1,5 +1,5 @@
 import { fix_and_outro_and_destroy_block } from "svelte/internal";
-import { ExpressionKind, IToken, SyntaxKind } from "./types";
+import { ExpressionKind, IToken, SyntaxKind, operators } from "./types";
 
 
 
@@ -10,13 +10,17 @@ export const parser = (tokenList: IToken[]) => {
 
     let index = 0;
     let max = tokens.length;
-    let _current = () => tokens[index];
-    let _is = (kind: SyntaxKind) => tokens[index].kind == kind;
-    let result = [];
+    let _current = () => tokens[index] || { value: "", kind: SyntaxKind.Unknown };
+    let _is = (kind: SyntaxKind) => _current().kind == kind;
+    let _isOperator = () => {
+        return operators.indexOf(_current().kind) > -1;
+    }
+    let ast = [];
+    let errors = [];
 
-    let _take = (kind: SyntaxKind) => {
+    let _take = (kind?: SyntaxKind) => {
         var result = _current();
-        if (result.kind !== kind) throw `Expected ${kind} but received ${result.kind}.`;
+        if (kind && result.kind !== kind) throw `Expected ${kind} but received ${result.kind}.`;
         index++;
         return result;
     }
@@ -24,7 +28,11 @@ export const parser = (tokenList: IToken[]) => {
     while (index < max) {
         //
         if (_current().kind == SyntaxKind.LetKeywordToken) {
-            result.push(VariableDeclaration());
+            try {
+                ast.push(VariableDeclaration());
+            } catch (error) {
+                errors.push(error);
+            }
         } else {
             throw `Invalid parser '${_current().value}'`;
         }
@@ -45,29 +53,68 @@ export const parser = (tokenList: IToken[]) => {
     }
 
     function _parseIdenitifier() {
-        return _take(SyntaxKind.IdentifierToken);
+        let root = _take(SyntaxKind.IdentifierToken);
+        let parts = [];
+        while (_is(SyntaxKind.DotToken)) {
+            _take();
+            if (_is(SyntaxKind.IdentifierToken)) parts.push(_take());
+            else throw "Indentifier fields are always identifiers themselves.";
+        }
+        return {
+            kind: ExpressionKind.IdentifierExpression,
+            root,
+            parts
+        }
     }
 
     function _parseExpression() {
         var left = _parseExpressionBuilder();
-        if (_is(SyntaxKind.SemicolonToken)) {
-            //
+
+        if (_isOperator()) {
+            var operator = _take();
+            var right = _parseExpression();
+            return {
+                kind: ExpressionKind.BinaryExpression,
+                left,
+                operator,
+                right
+            };
         }
         else {
-            throw "Invalid Expression";
+            return left;
         }
-        _take(SyntaxKind.SemicolonToken);
-
-        return left;
     }
 
     function _parseExpressionBuilder() {
         //
         if (_is(SyntaxKind.IdentifierToken)) return _parseIdenitifier();
-        else if (_is(SyntaxKind.StringLiteralToken)) return _take(SyntaxKind.StringLiteralToken);
-        else if (_is(SyntaxKind.NumberLiteralToken)) return _take(SyntaxKind.NumberLiteralToken);
+        else if (_is(SyntaxKind.StringLiteralToken)) {
+            return {
+                kind: ExpressionKind.StringLiteralExpression,
+                expression: _take(SyntaxKind.StringLiteralToken)
+            };
+        }
+        else if (_is(SyntaxKind.NumberLiteralToken)) {
+            return {
+                kind: ExpressionKind.NumberLiteralExpression,
+                expression: _take(SyntaxKind.NumberLiteralToken)
+            };
+        }
+
+        // Example: (2 + 3)
+        else if (_is(SyntaxKind.OpenParenToken)) {
+            _take();
+            var expression = _parseExpression();
+            if (!_is(SyntaxKind.CloseParenToken)) throw "Params should be closed...";
+            else _take();
+
+            return {
+                kind: ExpressionKind.ParenthesizedExpression,
+                expression
+            };
+        }
         else throw "Invalid Expression";
     }
 
-    return result;
+    return { ast, errors };
 }

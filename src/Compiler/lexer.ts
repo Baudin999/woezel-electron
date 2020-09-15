@@ -1,4 +1,4 @@
-import { getEntries } from "./core";
+import { getEntries, operators } from "./core";
 import type { MapLike } from "./core";
 import { CharacterCodes, SyntaxKind } from "./types";
 import type { KeywordSyntaxKind, IToken } from "./types";
@@ -360,27 +360,6 @@ function isWhitespace(c: number) {
     return c == CharacterCodes.space;
 }
 
-const operators = [
-    CharacterCodes.equals,          // =
-    CharacterCodes.colon,           // :
-    CharacterCodes.ampersand,       // &
-    CharacterCodes.openParen,       // (
-    CharacterCodes.closeParen,      // )
-    CharacterCodes.openBracket,     // [
-    CharacterCodes.closeBracket,    // ]
-    CharacterCodes.greaterThan,     // >
-    CharacterCodes.lessThan,        // <
-
-    CharacterCodes.plus,            // +
-    CharacterCodes.minus,           // -
-    CharacterCodes.asterisk,        // *
-    CharacterCodes.slash,           // /
-    CharacterCodes.percent,         // %
-    CharacterCodes.caret,           // ^
-
-    CharacterCodes.dot,             // .
-    CharacterCodes.comma,           // .
-];
 function isOperator(c: number) {
     return operators.indexOf(c) > -1;
 }

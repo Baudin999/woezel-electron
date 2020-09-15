@@ -121,6 +121,13 @@ export type KeywordSyntaxKind =
     | SyntaxKind.LetKeywordToken
     ;
 
+export const operators = [
+    SyntaxKind.PlusToken,
+    SyntaxKind.MinusToken,
+    SyntaxKind.AsteriskToken,
+    SyntaxKind.SlashToken
+];
+
 export enum CharacterCodes {
     nullCharacter = 0,
     maxAsciiCharacter = 0x7F,
@@ -237,5 +244,13 @@ export enum CharacterCodes {
 
 
 export enum ExpressionKind {
-    VariableDeclaration
+    VariableDeclaration,
+
+    IdentifierExpression,
+    StringLiteralExpression,
+    NumberLiteralExpression,
+
+    ParenthesizedExpression,
+    BinaryExpression,
+    UnaryExpression
 }
