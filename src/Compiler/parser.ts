@@ -10,31 +10,36 @@ export const parser = (tokenList: IToken[]) => {
 
     let index = 0;
     let max = tokens.length;
-    let _current = () => tokens[index] || { value: "", kind: SyntaxKind.Unknown };
+    let _current = (n = 0) => tokens[index + n] || { value: "", line: -1, lineStart: -1, lineEnd: -1, fileStart: -1, fileEnd: -1, kind: SyntaxKind.Unknown };
     let _is = (kind: SyntaxKind) => _current().kind == kind;
     let _isOperator = () => {
+        _parseContextNewline();
         return operators.indexOf(_current().kind) > -1;
     }
+    let context = 0;
     let ast = [];
     let errors = [];
 
     let _take = (kind?: SyntaxKind) => {
+        _parseContextNewline();
         var result = _current();
-        if (kind && result.kind !== kind) throw `Expected ${kind} but received ${result.kind}.`;
+        if (kind && result.kind !== kind) throw new Error(`
+Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} but received ${SyntaxKind[result.kind]}.`);
         index++;
         return result;
     }
 
     while (index < max) {
-        //
         if (_current().kind == SyntaxKind.LetKeywordToken) {
-            try {
-                ast.push(VariableDeclaration());
-            } catch (error) {
-                errors.push(error);
-            }
-        } else {
-            throw `Invalid parser '${_current().value}'`;
+            context++;
+            ast.push(VariableDeclaration());
+            context--;
+        }
+        else if (_current().kind == SyntaxKind.NewLine) {
+            index++;
+        }
+        else {
+            throw new Error(`Invalid parser for value: '${_current().value}'`);
         }
     }
 
@@ -85,8 +90,24 @@ export const parser = (tokenList: IToken[]) => {
         }
     }
 
+    function _parseContextNewline() {
+        if (_current().kind == SyntaxKind.NewLine) {
+            index++;
+            for (let i = 0; i < context; ++i) {
+                if (_current().kind == SyntaxKind.IndentToken) {
+                    index++;
+                    while (_current().kind == SyntaxKind.IndentToken) index++;
+                }
+                else {
+                    throw new Error(`Invalid indentation: line ${_current().line} column ${_current().lineStart}`);
+                }
+            }
+        }
+    }
+
     function _parseExpressionBuilder() {
-        //
+        _parseContextNewline();
+
         if (_is(SyntaxKind.IdentifierToken)) return _parseIdenitifier();
         else if (_is(SyntaxKind.StringLiteralToken)) {
             return {
@@ -103,17 +124,21 @@ export const parser = (tokenList: IToken[]) => {
 
         // Example: (2 + 3)
         else if (_is(SyntaxKind.OpenParenToken)) {
-            _take();
+            _take(SyntaxKind.OpenParenToken);
             var expression = _parseExpression();
-            if (!_is(SyntaxKind.CloseParenToken)) throw "Params should be closed...";
-            else _take();
+            if (!_is(SyntaxKind.CloseParenToken)) throw new Error("Params should be closed");
+            else {
+                _take(SyntaxKind.CloseParenToken);
+            }
 
             return {
                 kind: ExpressionKind.ParenthesizedExpression,
                 expression
             };
         }
-        else throw "Invalid Expression";
+        else {
+            throw new Error(`Invalid Expression: '${SyntaxKind[_current().kind]}' '${_current().value}'`);
+        }
     }
 
     return { ast, errors };

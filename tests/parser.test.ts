@@ -40,4 +40,16 @@ describe('parser', function () {
         assert.equal(ast[0].kind, ExpressionKind.VariableDeclaration);
     });
 
+    it('parse code 5', function () {
+        let code = `
+let foo = 
+    (2 + 3) 
+            - 4;
+`;
+        let tokens = lex(code);
+        let { ast, errors } = parser(tokens);
+        // console.log(JSON.stringify(ast, null, 4));
+        assert.equal(ast[0].kind, ExpressionKind.VariableDeclaration);
+    });
+
 });
