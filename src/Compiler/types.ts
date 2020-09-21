@@ -25,6 +25,7 @@ export enum SyntaxKind {
     DataKeywordToken,
     ChoiceKeywordToken,
     LetKeywordToken,
+    ExtendsKeywordToken,
 
     // Operators
     OperatorToken,
@@ -75,6 +76,8 @@ export enum SyntaxKind {
     QuestionQuestionToken,
     BacktickToken,
     IndentToken,
+    PipeRight,
+    PipeLeft,
 
     // Assignments
     EqualsToken,
@@ -105,8 +108,12 @@ export enum SyntaxKind {
     EndStatement = SemicolonToken,
 
     // literal tokens
-    StringLiteralToken,
-    NumberLiteralToken,
+    StringLiteralToken,     // "Vincent"  only double quotes
+    NumberLiteralToken,     // 2  2.3  345.12333e12
+    BooleanLiteralToken,    // true false
+    DateLiteralToken,       // 01/12/2020 
+    DateTimeLiteralToken,   // 01/12/2020:12:30:00
+    TimeLiteralToken,       // 12:30:00  12:30   the miliseconds are optional and will default to 00
 
     // Comments
     SingleLineCommentToken,
@@ -119,13 +126,15 @@ export type KeywordSyntaxKind =
     | SyntaxKind.DataKeywordToken
     | SyntaxKind.ChoiceKeywordToken
     | SyntaxKind.LetKeywordToken
+    | SyntaxKind.ExtendsKeywordToken
     ;
 
 export const operators = [
     SyntaxKind.PlusToken,
     SyntaxKind.MinusToken,
     SyntaxKind.AsteriskToken,
-    SyntaxKind.SlashToken
+    SyntaxKind.SlashToken,
+    SyntaxKind.PipeRight
 ];
 
 export enum CharacterCodes {
@@ -245,6 +254,8 @@ export enum CharacterCodes {
 
 export enum ExpressionKind {
     VariableDeclaration,
+    TypeDeclaration,
+    FieldDeclaration,
 
     IdentifierExpression,
     StringLiteralExpression,
@@ -252,5 +263,43 @@ export enum ExpressionKind {
 
     ParenthesizedExpression,
     BinaryExpression,
-    UnaryExpression
+    UnaryExpression,
+    FunctionApplicationExpression,
+    FunctionDefinitionExpression
+}
+
+
+export interface IExpression {
+    kind: ExpressionKind;
+}
+export interface IVariableExpression extends IExpression {
+    name: IExpression;
+    expression: IExpression;
+}
+export interface IIdentifierExpression extends IExpression {
+    root: IToken;
+    parts: IToken[];
+}
+export interface IFunctionApplicationExpression extends IExpression {
+    id: IToken;
+    parameters: IExpression[];
+}
+export interface IUnaryExpression extends IExpression {
+    expression: IExpression | IToken;
+}
+export interface IBinaryExpression extends IExpression {
+    left: IExpression;
+    operator: IToken;
+    right: IExpression;
+}
+
+export interface ITypeDeclaration extends IExpression {
+    name: IToken;
+    extensions: IIdentifierExpression[];
+    fields: IFieldDeclaration[];
+}
+export interface IFieldDeclaration extends IExpression {
+    name: IToken;
+    type: IIdentifierExpression;
+    restrictions: IExpression[];
 }

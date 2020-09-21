@@ -4,6 +4,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import autoPreprocess from 'svelte-preprocess';
+import { less } from 'svelte-preprocess-less';
 import typescript from '@rollup/plugin-typescript';
 import css from "rollup-plugin-css-only";
 
@@ -48,7 +49,10 @@ export default {
 				css.write('bundle.css');
 			},
 
-			preprocess: autoPreprocess()
+			preprocess: autoPreprocess(),
+			// preprocess: {
+			// 	style: less({ all: true }),
+			// },
 		}),
 
 		// we'll extract any component CSS out into

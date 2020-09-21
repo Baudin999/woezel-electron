@@ -16,12 +16,7 @@ let verifyTokens = (code, tokens: IToken[], show = false) => {
     });
 }
 
-let log = (tokens: IToken[]) => {
-    //
-    tokens.forEach(t => {
-        console.log({ ...t, kind: SyntaxKind[t.kind] })
-    });
-}
+
 
 describe('lexer', function () {
     it('lex code', function () {

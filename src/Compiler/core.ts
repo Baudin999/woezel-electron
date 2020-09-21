@@ -53,5 +53,7 @@ export const operators = [
     CharacterCodes.caret,           // ^
 
     CharacterCodes.dot,             // .
-    CharacterCodes.comma,           // .
+    CharacterCodes.comma,           // ,
+
+    CharacterCodes.bar,             // |
 ];

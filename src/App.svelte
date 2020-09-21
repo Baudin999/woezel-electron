@@ -1,6 +1,8 @@
 <script lang="ts">
   import Router from "svelte-spa-router";
   import { routes, navigateTo } from "./Services/navigation";
+  import NavButton from "./Controls/NavButton.svelte";
+  import NavigationPane from "./Controls/NavigationPane.svelte";
 </script>
 
 <style>
@@ -27,17 +29,27 @@
     overflow: hidden;
     padding: 1em;
   }
+
+  .buttons {
+    background: var(--color);
+  }
 </style>
 
-<div class="container">
-  <div class="left">
-    <div class="buttons">
+<!-- 
+<div class="buttons">
       <div on:click={() => navigateTo('/home')}>Home</div>
       <div on:click={() => navigateTo('/projects')}>Projects</div>
       <div on:click={() => navigateTo('/lang-tester')}>Language Tester</div>
       <div on:click={() => navigateTo('/page-viewer')}>Page Viewer</div>
       <div on:click={() => navigateTo('/something')}>Not Found</div>
-    </div>
+    </div> -->
+
+<div class="container">
+  <div class="left">
+    <NavigationPane>
+      <NavButton title="Home" href="/home" icon="fa fa-home" />
+    </NavigationPane>
+
   </div>
   <div class="right">
     <Router {routes} />
