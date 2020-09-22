@@ -96,7 +96,7 @@ let bar
         assert.equal(errors.length, 0);
         assert.isNotNull(ast);
         assert.isNotNull(ast[0]);
-        assert.equal(ast[0].kind, ExpressionKind.VariableDeclaration);
+        assert.equal(ast[0].kind, ExpressionKind.FunctionDefinitionExpression);
         let varDeclaration = <IVariableExpression>ast[0];
 
     });

@@ -19,8 +19,10 @@ import {
 import { baseLibrary } from "./js_base";
 
 
-function visitFunctionDefinitionExpression(node: IFunctionApplicationExpression) {
-    return `return ${node.id.value}(${node.parameters.map(p => visit(p)).join(', ')});`;
+function visitFunctionDefinitionExpression(node: IVariableExpression) {
+    return `function ${visit(node.name)} {
+    ${visit(node.expression)}
+}`;
 }
 
 function visitFunctionApplicationExpression(node: IFunctionApplicationExpression) {
@@ -79,7 +81,7 @@ function visit(node: IExpression) {
         case ExpressionKind.FunctionApplicationExpression:
             return visitFunctionApplicationExpression(node as IFunctionApplicationExpression);
         case ExpressionKind.FunctionDefinitionExpression:
-            return visitFunctionDefinitionExpression(node as IFunctionApplicationExpression);
+            return visitFunctionDefinitionExpression(node as IVariableExpression);
         case ExpressionKind.BinaryExpression:
             return visitBinaryExpression(node as IBinaryExpression);
         case ExpressionKind.UnaryExpression:
@@ -95,7 +97,6 @@ function visit(node: IExpression) {
 
 
 export function transpile(ast: IExpression[]) {
-    // console.log(JSON.stringify(ast[1], null, 4))
     return baseLibrary + '\n\n' + ast.map(node => {
         return visit(node);
     }).join("\n\n") + '\n\nmain();';

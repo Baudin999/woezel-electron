@@ -78,6 +78,7 @@ export enum SyntaxKind {
     IndentToken,
     PipeRight,
     PipeLeft,
+    NoParams,
 
     // Assignments
     EqualsToken,
@@ -265,7 +266,8 @@ export enum ExpressionKind {
     BinaryExpression,
     UnaryExpression,
     FunctionApplicationExpression,
-    FunctionDefinitionExpression
+    FunctionDefinitionExpression,
+    EmptyParameters
 }
 
 
@@ -303,3 +305,5 @@ export interface IFieldDeclaration extends IExpression {
     type: IIdentifierExpression;
     restrictions: IExpression[];
 }
+
+export interface IEmptyParamsExpression extends IExpression { }

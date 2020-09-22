@@ -1,0 +1,15 @@
+{
+    "extension": [
+        "ts"
+    ],
+    "package": "./package.json",
+    "reporter": "spec",
+    "timeout": 5000,
+    "config": "./tests/tsconfig.json",
+    "recursive": true,
+    "spec": "./tests/**/*.ts",
+    "watch-files": [
+        "./src/**/*.ts"
+    ],
+    "require": "ts-node/register"
+}

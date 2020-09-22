@@ -8,19 +8,29 @@ import { transpile } from "./../../src/Compiler/Transpiler/js";
 describe('transpiler', function () {
     it('transpile 1', function () {
         let code = `
-let name = "Vincent" |> concat "other ";
-let main args =
-    print name "Hello";
+    let name = "Vincent" |> concat "other ";
+    let main args =
+        print name;
+    `;
+        let tokens = lex(code);
+        let { ast, errors } = parser(tokens);
+        if (errors.length > 0) console.log(JSON.stringify(errors, null, 4));
+        let result = transpile(ast);
+        var evalResult = Function(result);
+        evalResult();
+    });
+
+    it('transpile 1', function () {
+        let code = `
+let name = concat "Hello, " "World";
+let main () =
+    print name;
 `
         let tokens = lex(code);
         let { ast, errors } = parser(tokens);
-
-        // console.log(JSON.stringify(ast[1], null, 4));
-
-        let result = transpile(ast);
-
         if (errors.length > 0) console.log(JSON.stringify(errors, null, 4));
 
+        let result = transpile(ast);
         console.log(result);
 
         var evalResult = Function(result);

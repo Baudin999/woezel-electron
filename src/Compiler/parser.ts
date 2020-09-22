@@ -7,7 +7,7 @@ import type {
     IIdentifierExpression,
     IFunctionApplicationExpression,
     ITypeDeclaration,
-    IFieldDeclaration
+    IFieldDeclaration, IEmptyParamsExpression
 } from "./types";
 import { ExpressionKind, IToken, SyntaxKind, operators } from "./types";
 
@@ -166,13 +166,10 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         let name = _parseExpression();
         _take(SyntaxKind.EqualsToken);
         let expression = _parseExpression();
-        if (expression.kind == ExpressionKind.FunctionApplicationExpression) {
-            expression.kind = ExpressionKind.FunctionDefinitionExpression;
-        }
         _take(SyntaxKind.SemicolonToken);
 
-        return {
-            kind: ExpressionKind.VariableDeclaration,
+        return <IVariableExpression>{
+            kind: name.kind == ExpressionKind.FunctionApplicationExpression ? ExpressionKind.FunctionDefinitionExpression : ExpressionKind.VariableDeclaration,
             name,
             expression,
         };
@@ -206,15 +203,26 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
                 right
             };
         }
+        else if (_current().kind == SyntaxKind.NoParams) {
+            _take(SyntaxKind.NoParams);
+            return <IFunctionApplicationExpression>{
+                kind: ExpressionKind.FunctionApplicationExpression,
+                id: (left as IIdentifierExpression).root,
+                parameters
+            };
+        }
         else if (_isIdentifier() || _isLiteral() || _current().kind == SyntaxKind.OpenParenToken) {
             while (_isIdentifier() || _isLiteral() || _current().kind == SyntaxKind.OpenParenToken) {
-                parameters.push(_parseExpressionBuilder());
+                var param = _parseExpressionBuilder();
+                if (param.kind != ExpressionKind.EmptyParameters) {
+                    parameters.push(param);
+                }
             }
             return <IFunctionApplicationExpression>{
                 kind: ExpressionKind.FunctionApplicationExpression,
                 id: (left as IIdentifierExpression).root,
                 parameters
-            }
+            };
         }
         else {
             return left;
