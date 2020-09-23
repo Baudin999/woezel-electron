@@ -1,6 +1,6 @@
 import { assert, expect } from "chai";
 import { it } from "mocha";
-import { SyntaxKind, ExpressionKind, IIdentifierExpression, IToken } from "../../src/Compiler/types";
+import { SyntaxKind, ExpressionKind, IIdentifierExpression, IToken, IFunctionApplicationExpression } from "../../src/Compiler/types";
 import type { IVariableExpression } from "../../src/Compiler/types";
 import { lex } from "../../src/Compiler/lexer";
 import { parser } from "../../src/Compiler/parser";
@@ -111,8 +111,34 @@ let bar
 
     });
 
-    //let name = "Vincent" |> concat " other";
 
+    it('multiple parameter application', function () {
+        let code = 'let name = concat "a" "b" "c" "d";';
+        let tokens = lex(code);
+        let { ast, errors } = parser(tokens);
 
+        var varDec = ast[0] as IVariableExpression;
+        var func = varDec.expression as IFunctionApplicationExpression;
+        assert.equal(func.parameters.length, 4);
 
+        // assertions
+    });
+
+    it('multiple nested function applications', function () {
+        let code = 'let name = concat "a" (concat "b" (concat"c" "d"));';
+        let tokens = lex(code);
+        let { ast, errors } = parser(tokens);
+
+        // 
+        let _tokens1 = tokens.map(t => ({ ...t, kind: SyntaxKind[t.kind] }))
+
+        var varDec = ast[0] as IVariableExpression;
+        var func = varDec.expression as IFunctionApplicationExpression;
+
+        assert.equal(func.parameters.length, 2);
+        assert.equal((func.parameters[1] as any).expression.parameters.length, 2);
+        assert.equal(((func.parameters[1] as any).expression.parameters[1] as any).expression.parameters.length, 2);
+
+        // assertions
+    });
 });

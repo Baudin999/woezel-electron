@@ -10,7 +10,7 @@
     "pure-electron": "electron .",
     "electron": "concurrently \"npm run dev-web\" \"npm run pure-electron\"",
     "validate": "svelte-check",
-    "test": "mocha --config ./tests/tsconfig.json --require ts-node/register --extensions ['ts'] --watch-files ./src/**/*.ts ./tests/**/*.ts --watch",
+    "test": "mocha --config ./tests/tsconfig.json --require ts-node/register --spec ./tests/**/*.ts --extensions ['ts'] --watch-files ./src/**/*.ts --watch",
     "coverage": "nyc -r lcov -e .ts -x \"*.test.ts\" npm run test"
   },
   "devDependencies": {
@@ -29,6 +29,7 @@
     "mocha": "^8.1.3",
     "monaco-editor": "^0.20.0",
     "nyc": "^15.1.0",
+    "prettier": "^2.1.2",
     "rollup": "^2.3.4",
     "rollup-plugin-css-only": "^2.1.0",
     "rollup-plugin-livereload": "^2.0.0",

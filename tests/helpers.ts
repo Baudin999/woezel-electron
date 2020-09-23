@@ -6,3 +6,7 @@ export const logTokens = (tokens: IToken[]) => {
         console.log({ ...t, kind: SyntaxKind[t.kind] })
     });
 }
+
+export const logErrors = (errors) => {
+    errors.forEach(e => console.log(e.message));
+}

@@ -213,10 +213,7 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         }
         else if (_isIdentifier() || _isLiteral() || _current().kind == SyntaxKind.OpenParenToken) {
             while (_isIdentifier() || _isLiteral() || _current().kind == SyntaxKind.OpenParenToken) {
-                var param = _parseExpressionBuilder();
-                if (param.kind != ExpressionKind.EmptyParameters) {
-                    parameters.push(param);
-                }
+                parameters.push(_parseExpressionBuilder());
             }
             return <IFunctionApplicationExpression>{
                 kind: ExpressionKind.FunctionApplicationExpression,
@@ -251,7 +248,9 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         else if (_is(SyntaxKind.OpenParenToken)) {
             _take(SyntaxKind.OpenParenToken);
             var expression = _parseExpression();
-            if (!_is(SyntaxKind.CloseParenToken)) throw new Error("Params should be closed");
+            if (!_is(SyntaxKind.CloseParenToken)) {
+                throw new Error("Params should be closed");
+            }
             else {
                 _take(SyntaxKind.CloseParenToken);
             }

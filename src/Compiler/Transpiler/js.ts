@@ -17,11 +17,12 @@ import {
     SyntaxKind
 } from "./../types";
 import { baseLibrary } from "./js_base";
+import prettier from "prettier";
 
 
 function visitFunctionDefinitionExpression(node: IVariableExpression) {
     return `function ${visit(node.name)} {
-    ${visit(node.expression)}
+    return ${visit(node.expression)};
 }`;
 }
 
@@ -66,8 +67,9 @@ function visitBinaryExpression(node: IBinaryExpression) {
 function visitUnaryExpression(node: IUnaryExpression) {
     if (<IToken>node.expression !== undefined) {
         return (node.expression as IToken).value;
-    } else {
-        return (node as any).expression.value;
+    }
+    else {
+        return visit(node.expression as IExpression);
     }
 }
 
@@ -86,6 +88,8 @@ function visit(node: IExpression) {
             return visitBinaryExpression(node as IBinaryExpression);
         case ExpressionKind.UnaryExpression:
             return visitUnaryExpression(node as IUnaryExpression);
+        case ExpressionKind.ParenthesizedExpression:
+            return visit((node as IUnaryExpression).expression as IExpression);
         case ExpressionKind.NumberLiteralExpression:
             return visitUnaryExpression(node as IUnaryExpression);
         case ExpressionKind.StringLiteralExpression:
@@ -97,7 +101,16 @@ function visit(node: IExpression) {
 
 
 export function transpile(ast: IExpression[]) {
-    return baseLibrary + '\n\n' + ast.map(node => {
+    let content = ast.map(node => {
         return visit(node);
-    }).join("\n\n") + '\n\nmain();';
+    }).join("\n\n");
+
+    return prettier.format(`
+${baseLibrary}
+
+(() => {
+    ${content}
+    main();
+})();
+`, { parser: 'babel' });
 }

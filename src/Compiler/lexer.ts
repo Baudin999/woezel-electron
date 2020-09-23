@@ -211,8 +211,6 @@ export function lex(code: string) {
     }
     let _consumeOperator = () => {
         _consumeWhile(isOperator);
-
-
         pushToken(SyntaxKind.OperatorToken);
     }
     let _consumeEndStatement = () => {
@@ -278,6 +276,19 @@ export function lex(code: string) {
     while (index < max) {
         if (currentChar === CharacterCodes.semicolon) {
             _consumeEndStatement();
+        }
+        else if (currentChar == CharacterCodes.openParen && _nextCode() == CharacterCodes.closeParen) {
+            _take();
+            _take();
+            _consumeOperator();
+        }
+        else if (currentChar == CharacterCodes.openParen) {
+            _take();
+            pushToken(SyntaxKind.OpenParenToken);
+        }
+        else if (currentChar == CharacterCodes.closeParen) {
+            _take();
+            pushToken(SyntaxKind.CloseParenToken);
         }
         else if (isStartSingleLineComment(currentChar, _nextCode())) {
             _consumeSingleLineComment();
