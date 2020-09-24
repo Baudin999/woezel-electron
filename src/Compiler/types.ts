@@ -307,3 +307,26 @@ export interface IFieldDeclaration extends IExpression {
 }
 
 export interface IEmptyParamsExpression extends IExpression { }
+
+export class Expression implements IExpression {
+    kind: ExpressionKind;
+    _kind: string;
+
+    constructor(e: IExpression) {
+        this.kind = e.kind;
+        this._kind = ExpressionKind[this.kind];
+
+        Object.keys(e).forEach(key => {
+            var value = e[key];
+            if ((value.kind || value.kind == 0) && value.lineStart !== 0 && !value.lineStart) {
+                this[key] = new Expression(value);
+            }
+            else if (Array.isArray(value)) {
+                this[key] = value.map(v => new Expression(v));
+            }
+            else {
+                this[key] = value;
+            }
+        });
+    }
+}

@@ -3,6 +3,8 @@
   import { routes, navigateTo } from "./Services/navigation";
   import NavButton from "./Controls/NavButton.svelte";
   import NavigationPane from "./Controls/NavigationPane.svelte";
+
+  let i = 0;
 </script>
 
 <style>
@@ -48,8 +50,8 @@
   <div class="left">
     <NavigationPane>
       <NavButton title="Home" href="/home" icon="fa fa-home" />
+      <NavButton title="Lang Tester" href="/lang-tester" icon="fa fa-file-o" />
     </NavigationPane>
-
   </div>
   <div class="right">
     <Router {routes} />

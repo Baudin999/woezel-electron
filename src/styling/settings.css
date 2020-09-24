@@ -4,6 +4,8 @@
   --color-primary--alt: white;
 
   --color-secundary: rgb(15, 82, 109);
+  --color-secundary--accented: rgb(3, 51, 70);
+  --color-secundary--selected: rgb(50, 127, 158);
   --color-secundary--alt: white;
 
   --color-warning: rgb(75, 5, 5);

@@ -172,7 +172,7 @@ export function lex(code: string) {
         value = '';
     }
     let _consumeWhile = (predicate) => {
-        while (predicate(_currentCode())) {
+        while (_currentCode() && predicate(_currentCode())) {
             value += _current();
             index++;
             lineIndex++;
@@ -195,7 +195,7 @@ export function lex(code: string) {
     }
     let _consumeWhitespace = () => {
         var indentWhitespaceDepth = 0;
-        while (isWhitespace(_currentCode()) && indentWhitespaceDepth < tabLength) {
+        while (_currentCode() && isWhitespace(_currentCode()) && indentWhitespaceDepth < tabLength) {
             value += _current();
             index++;
             lineIndex++;
@@ -304,6 +304,8 @@ export function lex(code: string) {
         }
         else if (currentChar == CharacterCodes.lineFeed) {
             _consumeNewline();
+        } else if (currentChar == CharacterCodes.carriageReturn) {
+            _take();
         }
         else if (isUnicodeIdentifierStart(currentChar)) {
             _consumeWord();
@@ -321,7 +323,7 @@ export function lex(code: string) {
             _consumeNumber();
         }
         else {
-            throw `Unknown token exception: ${_current()}`;
+            throw `Unknown token exception: ${_current()} (${_currentCode()})`;
         }
 
         loopTrapFunction();

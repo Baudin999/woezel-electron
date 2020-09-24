@@ -1,17 +1,36 @@
 <script>
+  import { Tabs, Tab, TabList, TabPanel } from "./../Controls/Tabs/index";
   import { lex } from "./../Compiler/lexer";
-  import { SyntaxKind } from "./../Compiler/types";
+  import { Expression, SyntaxKind } from "./../Compiler/types";
   import Editor from "./../Controls/Editor.svelte";
+  import { parser } from "../Compiler/parser";
+  import { transpile } from "../Compiler/Transpiler/js";
 
   let txt = "";
-  let json = "";
-  let textChanged = event => {
-    var text = event.detail;
+  let tokensJson = "";
+  let javascript = "";
+  let astJson = "";
+  let errorsJson = "";
+
+  let textChanged = (event) => {
+    const text = event.detail;
     localStorage.setItem("code", text);
-    var tokens = lex(text).map(t => {
+    const tokens = lex(text);
+    const { ast, errors } = parser(tokens);
+    javascript = transpile(ast);
+
+    const displayTokens = tokens.map((t) => {
       return { ...t, kind: SyntaxKind[t.kind] };
     });
-    json = JSON.stringify(tokens, null, 4);
+    tokensJson = JSON.stringify(displayTokens, null, 4);
+    astJson = JSON.stringify(
+      ast.map((n) => new Expression(n)),
+      null,
+      4
+    );
+    errorsJson = JSON.stringify(errors, null, 4);
+
+    // console.log(javascript);
   };
 
   (() => {
@@ -46,6 +65,8 @@
     flex: 1;
     height: 100%;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 </style>
 
@@ -54,6 +75,24 @@
     <Editor on:change={textChanged} text={txt} />
   </div>
   <div class="right">
-    <Editor language="json" text={json} />
+    <Tabs>
+      <TabList>
+        <Tab>Javascript</Tab>
+        <Tab>AST</Tab>
+        <Tab>Tokens</Tab>
+      </TabList>
+
+      <TabPanel>
+        <Editor language="javascript" text={javascript} />
+      </TabPanel>
+
+      <TabPanel>
+        <Editor language="json" text={astJson} />
+      </TabPanel>
+
+      <TabPanel>
+        <Editor language="json" text={tokensJson} />
+      </TabPanel>
+    </Tabs>
   </div>
 </div>

@@ -105,12 +105,11 @@ export function transpile(ast: IExpression[]) {
         return visit(node);
     }).join("\n\n");
 
-    return prettier.format(`
-${baseLibrary}
-
+    return `    
 (() => {
     ${content}
     main();
 })();
-`, { parser: 'babel' });
+${baseLibrary}
+`;
 }
