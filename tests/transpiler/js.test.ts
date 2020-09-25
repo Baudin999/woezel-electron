@@ -23,9 +23,7 @@ let main args =
 
     it('transpile 1', function () {
         let code = `
-let name = concat 
-    "c" 
-    (concat "d" ("f" |> concat"e"));
+let name = concat "c" (concat "d" ("f" |> concat"e"));
 let main () =
     print (concat name "gabc");
 `;

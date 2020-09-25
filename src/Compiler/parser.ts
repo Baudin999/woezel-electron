@@ -7,7 +7,7 @@ import type {
     IIdentifierExpression,
     IFunctionApplicationExpression,
     ITypeDeclaration,
-    IFieldDeclaration, IEmptyParamsExpression
+    IFieldDeclaration, IEmptyParamsExpression, IVariableDefinition
 } from "./types";
 import { ExpressionKind, IToken, SyntaxKind, operators } from "./types";
 
@@ -77,15 +77,27 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
     // Main parsing loop
     (() => {
         while (index < max) {
+
+            // LET IS OPTIONAL IN THE CREATION OF A VARIABLE
             if (_current().kind == SyntaxKind.LetKeywordToken) {
+                _take(SyntaxKind.LetKeywordToken);
                 ParseBlock(VariableDeclaration);
             }
             else if (_current().kind == SyntaxKind.TypeKeywordToken) {
                 ParseBlock(TypeDeclaration);
             }
+            else if (_current().kind == SyntaxKind.IdentifierToken && _next().kind == SyntaxKind.TypeDef) {
+                ParseBlock(VariableDefinition);
+            }
+            else if (_current().kind == SyntaxKind.IdentifierToken) {
+                ParseBlock(VariableDeclaration);
+            }
             else if (_current().kind == SyntaxKind.NewLine || _current().kind == SyntaxKind.IndentToken) {
                 index++;
             }
+            else if (_current().kind == SyntaxKind.SemicolonToken) index++;
+            else if (_current().kind == SyntaxKind.SingleLineCommentToken) index++;
+            else if (_current().kind == SyntaxKind.MultiLineCommentToken) index++;
             else {
                 throw new Error(`Invalid parser for value: '${_current().value}'`);
             }
@@ -161,8 +173,23 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         };
     }
 
+    function VariableDefinition(): IVariableDefinition {
+        let id = _parseExpression();
+        _take(SyntaxKind.TypeDef);
+        let parameters = [_parseExpression()];
+        while (_current().kind === SyntaxKind.NextParamToken) {
+            _take(SyntaxKind.NextParamToken);
+            parameters.push(_parseExpression());
+        }
+
+        return <IVariableDefinition>{
+            kind: ExpressionKind.VariableDefinition,
+            identifier: id,
+            parameters
+        }
+    }
+
     function VariableDeclaration(): IVariableExpression {
-        _take(SyntaxKind.LetKeywordToken);
         let name = _parseExpression();
         _take(SyntaxKind.EqualsToken);
         let expression = _parseExpression();

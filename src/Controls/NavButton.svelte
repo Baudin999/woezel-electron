@@ -13,7 +13,6 @@
 
   locationService.subscribe((loc) => {
     selected = loc === href;
-    console.log(loc, href, selected);
   });
 
   const click = () => {

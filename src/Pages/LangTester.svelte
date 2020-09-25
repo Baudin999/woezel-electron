@@ -72,7 +72,7 @@
     height: 100%;
     border-right: 1px solid lightgray;
     transition: all 1s ease-in-out;
-    min-width: 500px;
+    min-width: 750px;
     overflow: auto;
   }
   .left > * {

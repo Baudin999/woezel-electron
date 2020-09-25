@@ -79,6 +79,8 @@ export enum SyntaxKind {
     PipeRight,
     PipeLeft,
     NoParams,
+    NextParamToken,
+    TypeDef,
 
     // Assignments
     EqualsToken,
@@ -254,6 +256,8 @@ export enum CharacterCodes {
 
 
 export enum ExpressionKind {
+    VariableDefinition,
+
     VariableDeclaration,
     TypeDeclaration,
     FieldDeclaration,
@@ -273,6 +277,10 @@ export enum ExpressionKind {
 
 export interface IExpression {
     kind: ExpressionKind;
+}
+export interface IVariableDefinition extends IExpression {
+    identifier: IExpression;
+    parameters: IExpression[];
 }
 export interface IVariableExpression extends IExpression {
     name: IExpression;
