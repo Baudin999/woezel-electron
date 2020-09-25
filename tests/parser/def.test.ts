@@ -14,7 +14,6 @@ describe('parser - Def', function () {
         let code = "foo : string -> string -> string;";
         let tokens = lex(code);
 
-        logTokens(tokens)
 
     });
 

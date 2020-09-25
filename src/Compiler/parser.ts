@@ -40,7 +40,7 @@ export const parser = (tokenList: IToken[]) => {
         if (minContext && i < minContext) {
             throw new Error(`Invalid indentation: line ${_current().line} column ${_current().lineStart} expected indentation.`);
         }
-        var kind = _current().kind;
+        var kind = _current(i).kind;
         return kind == SyntaxKind.StringLiteralToken
             || kind == SyntaxKind.NumberLiteralToken
             || kind == SyntaxKind.BooleanLiteralToken
@@ -54,7 +54,7 @@ export const parser = (tokenList: IToken[]) => {
         if (minContext && i < minContext) {
             throw new Error(`Invalid indentation: line ${_current().line} column ${_current().lineStart} expected indentation.`);
         }
-        return _current().kind == SyntaxKind.IdentifierToken;
+        return _current(i).kind == SyntaxKind.IdentifierToken;
     }
     let _isOperator = () => {
         var i = 0;
@@ -92,9 +92,7 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
             else if (_current().kind == SyntaxKind.IdentifierToken) {
                 ParseBlock(VariableDeclaration);
             }
-            else if (_current().kind == SyntaxKind.NewLine || _current().kind == SyntaxKind.IndentToken) {
-                index++;
-            }
+            else if (_current().kind == SyntaxKind.NewLine || _current().kind == SyntaxKind.IndentToken) index++;
             else if (_current().kind == SyntaxKind.SemicolonToken) index++;
             else if (_current().kind == SyntaxKind.SingleLineCommentToken) index++;
             else if (_current().kind == SyntaxKind.MultiLineCommentToken) index++;
@@ -238,8 +236,8 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
                 parameters
             };
         }
-        else if (_isIdentifier() || _isLiteral() || _current().kind == SyntaxKind.OpenParenToken) {
-            while (_isIdentifier() || _isLiteral() || _current().kind == SyntaxKind.OpenParenToken) {
+        else if (_isIdentifier() || _isLiteral() || _is(SyntaxKind.OpenParenToken)) {
+            while (_isIdentifier() || _isLiteral() || _is(SyntaxKind.OpenParenToken)) {
                 parameters.push(_parseExpressionBuilder());
             }
             return <IFunctionApplicationExpression>{

@@ -125,7 +125,12 @@ let bar
     });
 
     it('multiple nested function applications', function () {
-        let code = 'let name = concat "a" (concat "b" (concat"c" "d"));';
+        let code = `
+let name = 
+    concat 
+        "a" 
+        (concat "b" (concat"c" "d"))
+    ;`;
         let tokens = lex(code);
         let { ast, errors } = parser(tokens);
 
@@ -140,5 +145,16 @@ let bar
         assert.equal(((func.parameters[1] as any).expression.parameters[1] as any).expression.parameters.length, 2);
 
         // assertions
+    });
+
+    it('multi line definitions', function () {
+        let code = `
+name = concat
+    "Foo"
+    "Bar"
+`;
+        let tokens = lex(code);
+        let { ast, errors } = parser(tokens);
+
     });
 });
