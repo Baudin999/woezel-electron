@@ -5,6 +5,10 @@
   import Editor from "./../Controls/Editor.svelte";
   import { parser } from "../Compiler/parser";
   import { transpile } from "../Compiler/Transpiler/js";
+  import prettier from "prettier";
+  import babel from "@babel/parser";
+
+  console.log(babel);
 
   let txt = "";
   let tokensJson = "";
@@ -17,20 +21,24 @@
     localStorage.setItem("code", text);
     const tokens = lex(text);
     const { ast, errors } = parser(tokens);
-    javascript = transpile(ast);
+    try {
+      javascript = prettier.format(transpile(ast), { parser: babel.parse });
 
-    const displayTokens = tokens.map((t) => {
-      return { ...t, kind: SyntaxKind[t.kind] };
-    });
-    tokensJson = JSON.stringify(displayTokens, null, 4);
-    astJson = JSON.stringify(
-      ast.map((n) => new Expression(n)),
-      null,
-      4
-    );
-    errorsJson = JSON.stringify(errors, null, 4);
+      const displayTokens = tokens.map((t) => {
+        return { ...t, kind: SyntaxKind[t.kind] };
+      });
+      tokensJson = JSON.stringify(displayTokens, null, 4);
+      astJson = JSON.stringify(
+        ast.map((n) => new Expression(n)),
+        null,
+        4
+      );
+      errorsJson = JSON.stringify(errors, null, 4);
 
-    // console.log(javascript);
+      console.log(errors);
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   (() => {

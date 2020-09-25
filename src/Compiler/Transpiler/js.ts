@@ -17,7 +17,7 @@ import {
     SyntaxKind
 } from "./../types";
 import { baseLibrary } from "./js_base";
-import prettier from "prettier";
+
 
 
 function visitFunctionDefinitionExpression(node: IVariableExpression) {

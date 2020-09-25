@@ -126,7 +126,7 @@ export function lex(code: string) {
     let loopTrap: number = 0;
 
 
-    let _current = () => code[index];
+    let _current = () => code[index] ?? "";
     let _currentCode = () => code.charCodeAt(index);
     let _next = () => code[index + 1];
     let _nextCode = () => code.charCodeAt(index + 1);
