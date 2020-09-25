@@ -3,27 +3,33 @@
   import { lex } from "./../Compiler/lexer";
   import { Expression, SyntaxKind } from "./../Compiler/types";
   import Editor from "./../Controls/Editor.svelte";
+  import StackPanel from "./../Controls/StackPanel.svelte";
+  import Panel from "./../Controls/Panel.svelte";
   import { parser } from "../Compiler/parser";
   import { transpile } from "../Compiler/Transpiler/js";
   import prettier from "prettier";
   import babel from "@babel/parser";
-
-  console.log(babel);
 
   let txt = "";
   let tokensJson = "";
   let javascript = "";
   let astJson = "";
   let errorsJson = "";
+  let messages = [];
 
   let textChanged = (event) => {
     const text = event.detail;
     localStorage.setItem("code", text);
     const tokens = lex(text);
     const { ast, errors } = parser(tokens);
-    try {
-      javascript = prettier.format(transpile(ast), { parser: babel.parse });
 
+    let old = console.log;
+    try {
+      messages = [];
+      javascript = prettier.format(transpile(ast), { parser: babel.parse });
+      console.log = function (...args) {
+        messages.push(args);
+      };
       const displayTokens = tokens.map((t) => {
         return { ...t, kind: SyntaxKind[t.kind] };
       });
@@ -34,10 +40,13 @@
         4
       );
       errorsJson = JSON.stringify(errors, null, 4);
-
-      console.log(errors);
+      var evalResult = Function(javascript);
+      evalResult();
     } catch (error) {
-      alert(error.message);
+      console.error(error.message);
+    } finally {
+      console.log = old;
+      if (errors && errors.length) console.log(errors);
     }
   };
 
@@ -51,7 +60,7 @@
   })();
 </script>
 
-<style>
+<style type="less">
   .container {
     width: 100%;
     height: 100%;
@@ -76,6 +85,16 @@
     display: flex;
     flex-direction: column;
   }
+  .messages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    li {
+      margin: 0;
+      padding: 1rem;
+      border-bottom: 1px solid orange;
+    }
+  }
 </style>
 
 <div class="container">
@@ -91,7 +110,20 @@
       </TabList>
 
       <TabPanel>
-        <Editor language="javascript" text={javascript} />
+        <StackPanel>
+          <Panel flex="3">
+            <Editor language="javascript" text={javascript} />
+          </Panel>
+          <Panel flex="1">
+            <div style="border-top: 1px solid grey;">
+              <ul class="messages">
+                {#each messages as message}
+                  <li>{message}</li>
+                {/each}
+              </ul>
+            </div>
+          </Panel>
+        </StackPanel>
       </TabPanel>
 
       <TabPanel>

@@ -321,6 +321,9 @@ export class Expression implements IExpression {
             if ((value.kind || value.kind == 0) && value.lineStart !== 0 && !value.lineStart) {
                 this[key] = new Expression(value);
             }
+            else if (value.lineStart >= 0) {
+                this[key] = new Token(value);
+            }
             else if (Array.isArray(value)) {
                 this[key] = value.map(v => new Expression(v));
             }
@@ -328,5 +331,25 @@ export class Expression implements IExpression {
                 this[key] = value;
             }
         });
+    }
+}
+
+export class Token implements IToken {
+    value: string;
+    line: number;
+    lineStart: number;
+    lineEnd: number;
+    fileStart: number;
+    fileEnd: number;
+    kind: SyntaxKind;
+    _kind: string;
+    /**
+     *
+     */
+    constructor(t: IToken) {
+        Object.keys(t).forEach(key => {
+            this[key] = t[key];
+        });
+        this._kind = SyntaxKind[this.kind];
     }
 }

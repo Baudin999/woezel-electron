@@ -243,6 +243,11 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
                 expression: _take(SyntaxKind.NumberLiteralToken)
             };
         }
+        else if (_is(SyntaxKind.NoParams)) {
+            return <IExpression>{
+                kind: ExpressionKind.EmptyParameters
+            };
+        }
 
         // Example: (2 + 3)
         else if (_is(SyntaxKind.OpenParenToken)) {

@@ -3,7 +3,7 @@ export const baseLibrary = `
 function print(...args) {
     console.log(args.join(""));
 }
-function concat(param1, param2) {
-    return [param1, param2].join("");
+function concat(...params) {
+    return params.join("");
 }
 `;

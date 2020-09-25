@@ -280,7 +280,7 @@ export function lex(code: string) {
         else if (currentChar == CharacterCodes.openParen && _nextCode() == CharacterCodes.closeParen) {
             _take();
             _take();
-            _consumeOperator();
+            pushToken(SyntaxKind.NoParams);
         }
         else if (currentChar == CharacterCodes.openParen) {
             _take();
