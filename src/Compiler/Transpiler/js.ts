@@ -13,14 +13,14 @@ import {
     IIdentifierExpression,
     IToken,
     IUnaryExpression,
-    IVariableExpression,
+    IVariableDeclarationExpression,
     SyntaxKind
 } from "./../types";
 import { baseLibrary } from "./js_base";
 
 
 
-function visitFunctionDefinitionExpression(node: IVariableExpression) {
+function visitFunctionDefinitionExpression(node: IVariableDeclarationExpression) {
     return `function ${visit(node.name)} {
     return ${visit(node.expression)};
 }`;
@@ -38,7 +38,7 @@ function visitIdentifierExpression(node: IIdentifierExpression) {
     }
 }
 
-function visitVariableDeclaration(node: IVariableExpression) {
+function visitVariableDeclaration(node: IVariableDeclarationExpression) {
     if (node.expression.kind == ExpressionKind.FunctionDefinitionExpression) {
         return `function ${visit(node.name)} {
     ${visit(node.expression)}
@@ -77,13 +77,13 @@ function visit(node: IExpression) {
     //
     switch (node.kind) {
         case ExpressionKind.VariableDeclaration:
-            return visitVariableDeclaration(node as IVariableExpression);
+            return visitVariableDeclaration(node as IVariableDeclarationExpression);
         case ExpressionKind.IdentifierExpression:
             return visitIdentifierExpression(node as IIdentifierExpression);
         case ExpressionKind.FunctionApplicationExpression:
             return visitFunctionApplicationExpression(node as IFunctionApplicationExpression);
         case ExpressionKind.FunctionDefinitionExpression:
-            return visitFunctionDefinitionExpression(node as IVariableExpression);
+            return visitFunctionDefinitionExpression(node as IVariableDeclarationExpression);
         case ExpressionKind.BinaryExpression:
             return visitBinaryExpression(node as IBinaryExpression);
         case ExpressionKind.UnaryExpression:

@@ -1,13 +1,13 @@
 import { fix_and_outro_and_destroy_block } from "svelte/internal";
-import type {
+import {
     IExpression,
-    IVariableExpression,
+    IVariableDeclarationExpression,
     IBinaryExpression,
     IUnaryExpression,
     IIdentifierExpression,
     IFunctionApplicationExpression,
     ITypeDeclaration,
-    IFieldDeclaration, IEmptyParamsExpression, IVariableDefinition
+    IFieldDeclaration, IEmptyParamsExpression, IVariableDefinition, Types
 } from "./types";
 import { ExpressionKind, IToken, SyntaxKind, operators } from "./types";
 
@@ -157,8 +157,9 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
                 fields.push({
                     kind: ExpressionKind.FieldDeclaration,
                     name: fieldName,
-                    type: fieldType,
-                    restrictions
+                    fieldType: fieldType,
+                    restrictions,
+                    type: Types.Undefined
                 });
             }
         }
@@ -167,7 +168,8 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
             kind: ExpressionKind.TypeDeclaration,
             name: name.root,
             extensions,
-            fields
+            fields,
+            type: Types.Undefined
         };
     }
 
@@ -187,16 +189,17 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         }
     }
 
-    function VariableDeclaration(): IVariableExpression {
+    function VariableDeclaration(): IVariableDeclarationExpression {
         let name = _parseExpression();
         _take(SyntaxKind.EqualsToken);
         let expression = _parseExpression();
         _take(SyntaxKind.SemicolonToken);
 
-        return <IVariableExpression>{
+        return <IVariableDeclarationExpression>{
             kind: name.kind == ExpressionKind.FunctionApplicationExpression ? ExpressionKind.FunctionDefinitionExpression : ExpressionKind.VariableDeclaration,
             name,
             expression,
+            type: Types.Undefined
         };
     }
 
@@ -211,7 +214,8 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         return {
             kind: ExpressionKind.IdentifierExpression,
             root,
-            parts
+            parts,
+            type: Types.Undefined
         }
     }
 
@@ -225,7 +229,8 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
                 kind: ExpressionKind.BinaryExpression,
                 left,
                 operator,
-                right
+                right,
+                type: Types.Undefined
             };
         }
         else if (_current().kind == SyntaxKind.NoParams) {
@@ -233,7 +238,8 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
             return <IFunctionApplicationExpression>{
                 kind: ExpressionKind.FunctionApplicationExpression,
                 id: (left as IIdentifierExpression).root,
-                parameters
+                parameters,
+                type: Types.Undefined
             };
         }
         else if (_isIdentifier() || _isLiteral() || _is(SyntaxKind.OpenParenToken)) {
@@ -243,7 +249,8 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
             return <IFunctionApplicationExpression>{
                 kind: ExpressionKind.FunctionApplicationExpression,
                 id: (left as IIdentifierExpression).root,
-                parameters
+                parameters,
+                type: Types.Undefined
             };
         }
         else {
@@ -259,18 +266,28 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         else if (_is(SyntaxKind.StringLiteralToken)) {
             return <IUnaryExpression>{
                 kind: ExpressionKind.StringLiteralExpression,
-                expression: _take(SyntaxKind.StringLiteralToken)
+                expression: _take(SyntaxKind.StringLiteralToken),
+                type: Types.String
             };
         }
         else if (_is(SyntaxKind.NumberLiteralToken)) {
             return <IUnaryExpression>{
                 kind: ExpressionKind.NumberLiteralExpression,
-                expression: _take(SyntaxKind.NumberLiteralToken)
+                expression: _take(SyntaxKind.NumberLiteralToken),
+                type: Types.Number
+            };
+        }
+        else if (_is(SyntaxKind.BooleanLiteralToken)) {
+            return <IUnaryExpression>{
+                kind: ExpressionKind.BooleanLiteralExpression,
+                expression: _take(SyntaxKind.BooleanLiteralToken),
+                type: Types.Boolean
             };
         }
         else if (_is(SyntaxKind.NoParams)) {
             return <IExpression>{
-                kind: ExpressionKind.EmptyParameters
+                kind: ExpressionKind.EmptyParameters,
+                type: Types.Undefined
             };
         }
 
@@ -287,7 +304,8 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
 
             return <IUnaryExpression>{
                 kind: ExpressionKind.ParenthesizedExpression,
-                expression
+                expression,
+                type: Types.Undefined
             };
         }
         else {

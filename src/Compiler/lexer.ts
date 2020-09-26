@@ -17,6 +17,8 @@ const textToKeyword = new Map(getEntries(textToKeywordObj));
 
 const textToToken = new Map(getEntries({
     ...textToKeywordObj,
+    "true": SyntaxKind.BooleanLiteralToken,
+    "false": SyntaxKind.BooleanLiteralToken,
     "{": SyntaxKind.OpenBraceToken,
     "}": SyntaxKind.CloseBraceToken,
     "(": SyntaxKind.OpenParenToken,

@@ -1,7 +1,7 @@
 import { assert, expect } from "chai";
 import { it } from "mocha";
 import { SyntaxKind, ExpressionKind, IToken } from "../../src/Compiler/types";
-import type { IVariableExpression } from "../../src/Compiler/types";
+import type { IVariableDeclarationExpression } from "../../src/Compiler/types";
 import { lex } from "../../src/Compiler/lexer";
 import { parser } from "../../src/Compiler/parser";
 

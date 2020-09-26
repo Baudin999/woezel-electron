@@ -1,7 +1,7 @@
 import { assert, expect } from "chai";
 import { it } from "mocha";
 import { SyntaxKind, ExpressionKind, IIdentifierExpression, IToken, IFunctionApplicationExpression } from "../../src/Compiler/types";
-import type { IVariableExpression } from "../../src/Compiler/types";
+import type { IVariableDeclarationExpression } from "../../src/Compiler/types";
 import { lex } from "../../src/Compiler/lexer";
 import { parser } from "../../src/Compiler/parser";
 import { logTokens } from "../helpers";
@@ -20,7 +20,7 @@ describe('parser - Let', function () {
         assert.isNotNull(ast);
         assert.isNotNull(ast[0]);
         assert.equal(ast[0].kind, ExpressionKind.VariableDeclaration);
-        let varDeclaration = <IVariableExpression>ast[0];
+        let varDeclaration = <IVariableDeclarationExpression>ast[0];
         assert.equal((<IIdentifierExpression>varDeclaration.name).root.value, "foo");
         assert.equal((<IIdentifierExpression>varDeclaration.name).root.kind, SyntaxKind.IdentifierToken);
         assert.equal(varDeclaration.expression.kind, ExpressionKind.NumberLiteralExpression);
@@ -97,7 +97,7 @@ let bar
         assert.isNotNull(ast);
         assert.isNotNull(ast[0]);
         assert.equal(ast[0].kind, ExpressionKind.FunctionDefinitionExpression);
-        let varDeclaration = <IVariableExpression>ast[0];
+        let varDeclaration = <IVariableDeclarationExpression>ast[0];
 
     });
 
@@ -117,7 +117,7 @@ let bar
         let tokens = lex(code);
         let { ast, errors } = parser(tokens);
 
-        var varDec = ast[0] as IVariableExpression;
+        var varDec = ast[0] as IVariableDeclarationExpression;
         var func = varDec.expression as IFunctionApplicationExpression;
         assert.equal(func.parameters.length, 4);
 
@@ -137,7 +137,7 @@ let name =
         // 
         let _tokens1 = tokens.map(t => ({ ...t, kind: SyntaxKind[t.kind] }))
 
-        var varDec = ast[0] as IVariableExpression;
+        var varDec = ast[0] as IVariableDeclarationExpression;
         var func = varDec.expression as IFunctionApplicationExpression;
 
         assert.equal(func.parameters.length, 2);

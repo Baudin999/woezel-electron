@@ -265,6 +265,11 @@ export enum ExpressionKind {
     IdentifierExpression,
     StringLiteralExpression,
     NumberLiteralExpression,
+    BooleanLiteralExpression,
+    DateLiteralExpression,
+    DateTimeLiteralExpression,
+    TimeLiteralExpression,
+    MoneyLiteralExpression,
 
     ParenthesizedExpression,
     BinaryExpression,
@@ -277,13 +282,14 @@ export enum ExpressionKind {
 
 export interface IExpression {
     kind: ExpressionKind;
+    type: Types;
 }
 export interface IVariableDefinition extends IExpression {
-    identifier: IExpression;
-    parameters: IExpression[];
+    identifier: IIdentifierExpression;
+    parameters: IIdentifierExpression[];
 }
-export interface IVariableExpression extends IExpression {
-    name: IExpression;
+export interface IVariableDeclarationExpression extends IExpression {
+    name: IIdentifierExpression;
     expression: IExpression;
 }
 export interface IIdentifierExpression extends IExpression {
@@ -310,7 +316,7 @@ export interface ITypeDeclaration extends IExpression {
 }
 export interface IFieldDeclaration extends IExpression {
     name: IToken;
-    type: IIdentifierExpression;
+    fieldType: IIdentifierExpression;
     restrictions: IExpression[];
 }
 
@@ -319,10 +325,14 @@ export interface IEmptyParamsExpression extends IExpression { }
 export class Expression implements IExpression {
     kind: ExpressionKind;
     _kind: string;
+    type: Types;
+    _type: string;
 
     constructor(e: IExpression) {
         this.kind = e.kind;
         this._kind = ExpressionKind[this.kind];
+        this.type = e.type;
+        this._type = Types[e.type];
 
         Object.keys(e).forEach(key => {
             var value = e[key];
@@ -360,4 +370,14 @@ export class Token implements IToken {
         });
         this._kind = SyntaxKind[this.kind];
     }
+}
+
+export enum Types {
+    Number,
+    String,
+    Boolean,
+    Date,
+    DateTime,
+    Time,
+    Undefined
 }
