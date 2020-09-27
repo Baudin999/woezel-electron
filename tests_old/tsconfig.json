@@ -5,8 +5,7 @@
         "es2015.generator",
         "es5"
     ],
-    "target": "es5",
-    "moduleResolution": "classic",
+    "moduleResolution": "commonjs",
     "rootDir": ".",
     "declaration": true,
     "declarationMap": true,
@@ -14,7 +13,7 @@
     "composite": true,
     "noEmitOnError": true,
     "strictNullChecks": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "noImplicitThis": true,
     "strictPropertyInitialization": true,
     "noUnusedLocals": true,
@@ -23,5 +22,8 @@
     "alwaysStrict": true,
     "preserveConstEnums": true,
     "newLine": "lf",
-    "types": []
+    "types": [],
+    "compilerOptions": {
+        "target": "es2018"
+    }
 }

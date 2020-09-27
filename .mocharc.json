@@ -9,7 +9,9 @@
     "recursive": true,
     "spec": "./tests/**/*.ts",
     "watch-files": [
-        "./src/**/*.ts"
+        "./src/**/*.ts",
+        "./tests/**/*.test.ts"
     ],
-    "require": "ts-node/register"
+    "require": "ts-node/register",
+    "watch": true
 }

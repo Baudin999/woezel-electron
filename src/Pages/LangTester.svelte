@@ -1,33 +1,30 @@
 <script>
   import { Tabs, Tab, TabList, TabPanel } from "./../Controls/Tabs/index";
-  import { lex } from "./../Compiler/lexer";
   import { Expression, SyntaxKind } from "./../Compiler/types";
   import Editor from "./../Controls/Editor.svelte";
   import StackPanel from "./../Controls/StackPanel.svelte";
   import Panel from "./../Controls/Panel.svelte";
-  import { parser } from "../Compiler/parser";
-  import { transpile } from "../Compiler/Transpiler/js";
-  import prettier from "prettier";
-  import babel from "@babel/parser";
+  import { compile } from "../Compiler/compiler";
+  import { debounce } from "../Services/debounce";
 
   let txt = "";
   let tokensJson = "";
-  let javascript = "";
+  let jsText = "";
   let astJson = "";
-  let errorsJson = "";
   let messages = [];
+  let compilationErrors = [];
 
-  let textChanged = (event) => {
+  let textChanged = debounce((event) => {
     const text = event.detail;
     localStorage.setItem("code", text);
-    const tokens = lex(text);
-    const { ast, errors } = parser(tokens);
-
+    console.log("start compile");
+    const { javascript, tokens, ast, errors } = compile(text, true);
+    console.log("finished compile");
     let old = console.log;
     try {
       messages = [];
-      javascript = prettier.format(transpile(ast), { parser: babel.parse });
       console.log = function (...args) {
+        old.apply(null, args);
         messages.push(args);
       };
       const displayTokens = tokens.map((t) => {
@@ -39,21 +36,25 @@
         null,
         4
       );
-      errorsJson = JSON.stringify(errors, null, 4);
+      jsText = javascript;
+      console.clear();
       var evalResult = Function(javascript);
       evalResult();
     } catch (error) {
       console.error(error.message);
     } finally {
       console.log = old;
-      if (errors && errors.length) console.log(errors);
+      compilationErrors = errors;
+      console.log("done...");
     }
-  };
+  });
 
   (() => {
     try {
-      txt = localStorage.getItem("code");
-      textChanged({ detail: txt });
+      setTimeout(() => {
+        txt = localStorage.getItem("code");
+        textChanged({ detail: txt });
+      });
     } catch (ex) {
       //
     }
@@ -92,14 +93,36 @@
     li {
       margin: 0;
       padding: 1rem;
-      border-bottom: 1px solid orange;
+      border-bottom: 1px solid lightgrey;
     }
   }
 </style>
 
 <div class="container">
   <div class="left">
-    <Editor on:change={textChanged} text={txt} />
+    <Tabs>
+      <TabList>
+        <Tab>index.car</Tab>
+      </TabList>
+      <TabPanel>
+        <StackPanel>
+          <Panel flex="3">
+            <Editor on:change={textChanged} text={txt} />
+          </Panel>
+          <Panel flex="1">
+            <div style="border-top: 1px solid grey;">
+              <ul class="messages">
+                {#each compilationErrors as error}
+                  <li>
+                    <pre>{error}</pre>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          </Panel>
+        </StackPanel>
+      </TabPanel>
+    </Tabs>
   </div>
   <div class="right">
     <Tabs>
@@ -112,7 +135,7 @@
       <TabPanel>
         <StackPanel>
           <Panel flex="3">
-            <Editor language="javascript" text={javascript} />
+            <Editor language="javascript" text={jsText} />
           </Panel>
           <Panel flex="1">
             <div style="border-top: 1px solid grey;">

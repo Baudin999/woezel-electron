@@ -1,3 +1,4 @@
+import { ErrorSink } from "./errorSink";
 import {
     ExpressionKind,
     IBinaryExpression,
@@ -6,48 +7,48 @@ import {
     IIdentifierExpression,
     IToken,
     IUnaryExpression,
-    IVariableDefinition,
-    IVariableDeclarationExpression,
+    ITypeDefinition,
+    IAssignmentExpression,
     SyntaxKind,
     Types
 } from "./types";
 
 
 
-export function check(ast: IExpression[]) {
+export function check(ast: IExpression[], errorSink: ErrorSink = new ErrorSink()) {
 
 
     var globalDefinitions = new Map();
     var errors = [];
 
-    function visitVariableDefinition(node: IVariableDefinition) {
-        var name = node.identifier.root.value;
+    function visitVariableDefinition(node: ITypeDefinition) {
+        var name = node.id.root.value;
 
         if (globalDefinitions.has(name)) {
             errors.push(`Type ${name} already exists, not allowed to declare a variable twice.`);
         }
 
-        node.parameters.forEach(param => visit(param));
+        node.typeParameters.forEach(param => visit(param));
 
-        if (node.parameters.length == 1) {
+        if (node.typeParameters.length == 1) {
             // we're in variable declaration territory...
-            node.type = node.parameters[0].type;
+            node.type = node.typeParameters[0].type;
         }
 
         globalDefinitions.set(name, node);
     }
 
-    function visitVariableDeclaration(node: IVariableDeclarationExpression) {
+    function visitVariableDeclaration(node: IAssignmentExpression) {
         // set the name for easy and quick access in the rest of the function.
-        let name = node.name.root.value;
+        let name = node.id.root.value;
 
         // first check if the name exists in the globalDefinitions
         // even if the variable is, for example, a UnaryExpression,
         // it should still equal the type of this global expression
-        var globalDefinition = <IVariableDefinition>globalDefinitions.get(name);
+        var globalDefinition = <ITypeDefinition>globalDefinitions.get(name);
 
-        visit(node.expression);
-        node.type = node.expression.type;
+        visit(node.body);
+        node.type = node.body.type;
 
         if (globalDefinition) {
             if (globalDefinition.type !== node.type) {
@@ -86,9 +87,9 @@ An expression can't change it's type.`);
         //
         switch (node.kind) {
             case ExpressionKind.VariableDefinition:
-                return visitVariableDefinition(node as IVariableDefinition);
-            case ExpressionKind.VariableDeclaration:
-                return visitVariableDeclaration(node as IVariableDeclarationExpression);
+                return visitVariableDefinition(node as ITypeDefinition);
+            case ExpressionKind.AssignmentExpression:
+                return visitVariableDeclaration(node as IAssignmentExpression);
             case ExpressionKind.IdentifierExpression:
                 return visitIdentifierExpression(node as IIdentifierExpression);
             // case ExpressionKind.FunctionApplicationExpression:

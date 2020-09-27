@@ -13,21 +13,27 @@ import {
     IIdentifierExpression,
     IToken,
     IUnaryExpression,
-    IVariableDeclarationExpression,
-    SyntaxKind
+    IAssignmentExpression,
+    SyntaxKind, IFunctionDeclarationExpression, Expression
 } from "./../types";
 import { baseLibrary } from "./js_base";
 
 
 
-function visitFunctionDefinitionExpression(node: IVariableDeclarationExpression) {
-    return `function ${visit(node.name)} {
-    return ${visit(node.expression)};
+function visitFunctionDefinitionExpression(node: IFunctionDeclarationExpression) {
+    let parameters =
+        node.parameters[0].kind == ExpressionKind.EmptyParameters ?
+            "()" :
+            `(${node.parameters.map(p => visit(p)).join(", ")})`;
+
+    return `function ${visit(node.id)} ${parameters} {
+    ${node.closure.map(c => visit(c)).join("")}
+    return ${visit(node.body)};
 }`;
 }
 
 function visitFunctionApplicationExpression(node: IFunctionApplicationExpression) {
-    return `${node.id.value}(${node.parameters.map(p => visit(p)).join(', ')})`;
+    return `${node.id.root.value}(${node.parameters.map(p => visit(p)).join(', ')})`;
 }
 
 function visitIdentifierExpression(node: IIdentifierExpression) {
@@ -38,15 +44,8 @@ function visitIdentifierExpression(node: IIdentifierExpression) {
     }
 }
 
-function visitVariableDeclaration(node: IVariableDeclarationExpression) {
-    if (node.expression.kind == ExpressionKind.FunctionDefinitionExpression) {
-        return `function ${visit(node.name)} {
-    ${visit(node.expression)}
-}`;
-    }
-    else {
-        return `var ${visit(node.name)} = ${visit(node.expression)};`
-    }
+function visitAssignmentExpression(node: IAssignmentExpression) {
+    return `var ${visit(node.id)} = ${visit(node.body)};`;
 }
 
 function visitBinaryExpression(node: IBinaryExpression) {
@@ -55,7 +54,16 @@ function visitBinaryExpression(node: IBinaryExpression) {
             let application = (node.right as IFunctionApplicationExpression);
             application.parameters.push(node.left);
             return visit(application);
+        } else if (node.right.kind == ExpressionKind.IdentifierExpression) {
+            let application = <IFunctionApplicationExpression>{
+                id: node.right,
+                parameters: [node.left],
+                kind: ExpressionKind.FunctionApplicationExpression
+            };
+            return visit(application);
         }
+
+        console.log(ExpressionKind[node.right.kind])
 
         throw `You can only pipe into a function`;
     }
@@ -75,15 +83,15 @@ function visitUnaryExpression(node: IUnaryExpression) {
 
 function visit(node: IExpression) {
     //
-    switch (node.kind) {
-        case ExpressionKind.VariableDeclaration:
-            return visitVariableDeclaration(node as IVariableDeclarationExpression);
+    switch (node?.kind) {
+        case ExpressionKind.AssignmentExpression:
+            return visitAssignmentExpression(node as IAssignmentExpression);
         case ExpressionKind.IdentifierExpression:
             return visitIdentifierExpression(node as IIdentifierExpression);
         case ExpressionKind.FunctionApplicationExpression:
             return visitFunctionApplicationExpression(node as IFunctionApplicationExpression);
         case ExpressionKind.FunctionDefinitionExpression:
-            return visitFunctionDefinitionExpression(node as IVariableDeclarationExpression);
+            return visitFunctionDefinitionExpression(node as IFunctionDeclarationExpression);
         case ExpressionKind.BinaryExpression:
             return visitBinaryExpression(node as IBinaryExpression);
         case ExpressionKind.UnaryExpression:
@@ -101,15 +109,24 @@ function visit(node: IExpression) {
 
 
 export function transpile(ast: IExpression[]) {
+    let hasMain = false;
+    ast.forEach(node => {
+        if (node.kind == ExpressionKind.FunctionDefinitionExpression) {
+            if ((<IAssignmentExpression>(node)).id.root.value === "main") hasMain = true;
+        }
+    });
+
     let content = ast.map(node => {
         return visit(node);
     }).join("\n\n");
 
     return `    
-(() => {
-    ${content}
-    main();
-})();
 ${baseLibrary}
+;
+
+return (() => {
+    ${content}
+    ${hasMain ? "return main();" : ""}
+})();
 `;
 }

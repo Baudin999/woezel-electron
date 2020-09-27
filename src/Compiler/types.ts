@@ -26,6 +26,7 @@ export enum SyntaxKind {
     ChoiceKeywordToken,
     LetKeywordToken,
     ExtendsKeywordToken,
+    WhereKeywordToken,
 
     // Operators
     OperatorToken,
@@ -130,6 +131,7 @@ export type KeywordSyntaxKind =
     | SyntaxKind.ChoiceKeywordToken
     | SyntaxKind.LetKeywordToken
     | SyntaxKind.ExtendsKeywordToken
+    | SyntaxKind.WhereKeywordToken
     ;
 
 export const operators = [
@@ -137,7 +139,12 @@ export const operators = [
     SyntaxKind.MinusToken,
     SyntaxKind.AsteriskToken,
     SyntaxKind.SlashToken,
-    SyntaxKind.PipeRight
+    SyntaxKind.PipeRight,
+    SyntaxKind.EqualsToken,
+    SyntaxKind.GreaterThanToken,
+    SyntaxKind.GreaterThanEqualsToken,
+    SyntaxKind.LessThanToken,
+    SyntaxKind.LessThanEqualsToken
 ];
 
 export enum CharacterCodes {
@@ -258,11 +265,11 @@ export enum CharacterCodes {
 export enum ExpressionKind {
     VariableDefinition,
 
-    VariableDeclaration,
     TypeDeclaration,
     FieldDeclaration,
 
-    IdentifierExpression,
+
+    // literal expressions
     StringLiteralExpression,
     NumberLiteralExpression,
     BooleanLiteralExpression,
@@ -271,12 +278,15 @@ export enum ExpressionKind {
     TimeLiteralExpression,
     MoneyLiteralExpression,
 
-    ParenthesizedExpression,
-    BinaryExpression,
-    UnaryExpression,
-    FunctionApplicationExpression,
-    FunctionDefinitionExpression,
-    EmptyParameters
+    // constructs
+    AssignmentExpression,                   // foo = 2
+    IdentifierExpression,                   // foo
+    ParenthesizedExpression,                // (2 + 3)
+    BinaryExpression,                       // 2 + 3
+    UnaryExpression,                        // "unary"
+    FunctionApplicationExpression,          // add 2 3
+    FunctionDefinitionExpression,           // add x y => x + y;
+    EmptyParameters                         // ()
 }
 
 
@@ -284,20 +294,26 @@ export interface IExpression {
     kind: ExpressionKind;
     type: Types;
 }
-export interface IVariableDefinition extends IExpression {
-    identifier: IIdentifierExpression;
-    parameters: IIdentifierExpression[];
+export interface ITypeDefinition extends IExpression {
+    id: IIdentifierExpression;
+    typeParameters: IIdentifierExpression[];
 }
-export interface IVariableDeclarationExpression extends IExpression {
-    name: IIdentifierExpression;
-    expression: IExpression;
+export interface IAssignmentExpression extends IExpression {
+    id: IIdentifierExpression;
+    body: IExpression;
 }
 export interface IIdentifierExpression extends IExpression {
     root: IToken;
     parts: IToken[];
 }
+export interface IFunctionDeclarationExpression extends IExpression {
+    id: IIdentifierExpression;
+    parameters: IExpression[];
+    body: IExpression;
+    closure: IExpression[];
+}
 export interface IFunctionApplicationExpression extends IExpression {
-    id: IToken;
+    id: IIdentifierExpression;
     parameters: IExpression[];
 }
 export interface IUnaryExpression extends IExpression {
@@ -309,16 +325,16 @@ export interface IBinaryExpression extends IExpression {
     right: IExpression;
 }
 
-export interface ITypeDeclaration extends IExpression {
-    name: IToken;
-    extensions: IIdentifierExpression[];
-    fields: IFieldDeclaration[];
-}
-export interface IFieldDeclaration extends IExpression {
-    name: IToken;
-    fieldType: IIdentifierExpression;
-    restrictions: IExpression[];
-}
+// export interface ITypeDeclaration extends IExpression {
+//     name: IToken;
+//     extensions: IIdentifierExpression[];
+//     fields: IFieldDeclaration[];
+// }
+// export interface IFieldDeclaration extends IExpression {
+//     name: IToken;
+//     fieldType: IIdentifierExpression;
+//     restrictions: IExpression[];
+// }
 
 export interface IEmptyParamsExpression extends IExpression { }
 

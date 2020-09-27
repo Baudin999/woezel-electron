@@ -3,6 +3,7 @@ import type { MapLike } from "./core";
 import { CharacterCodes, SyntaxKind } from "./types";
 import type { KeywordSyntaxKind, IToken } from "./types";
 import { text } from "svelte/internal";
+import { ErrorSink } from "./errorSink";
 
 const textToKeywordObj: MapLike<KeywordSyntaxKind> = {
     type: SyntaxKind.TypeKeywordToken,
@@ -10,7 +11,8 @@ const textToKeywordObj: MapLike<KeywordSyntaxKind> = {
     data: SyntaxKind.DataKeywordToken,
     choice: SyntaxKind.ChoiceKeywordToken,
     let: SyntaxKind.LetKeywordToken,
-    extends: SyntaxKind.ExtendsKeywordToken
+    extends: SyntaxKind.ExtendsKeywordToken,
+    where: SyntaxKind.WhereKeywordToken
 };
 
 const textToKeyword = new Map(getEntries(textToKeywordObj));
@@ -115,7 +117,7 @@ function lookupInUnicodeMap(code: number, map: readonly number[]): boolean {
     return false;
 }
 
-export function lex(code: string) {
+export function lex(code: string, errorSink: ErrorSink = new ErrorSink()) {
     code = code.replace("\r\n", "\n");
     const tabLength = 4;
     let index = 0;

@@ -1,25 +1,31 @@
 import { fix_and_outro_and_destroy_block } from "svelte/internal";
+import { ErrorSink } from "./errorSink";
 import {
     IExpression,
-    IVariableDeclarationExpression,
+    IAssignmentExpression,
     IBinaryExpression,
     IUnaryExpression,
     IIdentifierExpression,
     IFunctionApplicationExpression,
-    ITypeDeclaration,
-    IFieldDeclaration, IEmptyParamsExpression, IVariableDefinition, Types
+    IFunctionDeclarationExpression,
+    ITypeDefinition,
+    Types, Expression
 } from "./types";
 import { ExpressionKind, IToken, SyntaxKind, operators } from "./types";
 
 
 
-export const parser = (tokenList: IToken[]) => {
+export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink()) => {
 
     // skipping the whitespaces
     let tokens = tokenList.filter(t => t.kind != SyntaxKind.Whitespace);
 
     let index = 0;
     let max = tokens.length;
+    let context = 0;
+    let ast: IExpression[] = [];
+    let errors: Error[] = [];
+
     let _current = (n = 0) => tokens[index + n] || { value: "", line: -1, lineStart: -1, lineEnd: -1, fileStart: -1, fileEnd: -1, kind: SyntaxKind.Unknown };
     let _next = () => {
         var i = 1;
@@ -33,6 +39,21 @@ export const parser = (tokenList: IToken[]) => {
             throw new Error(`Invalid indentation: line ${_current().line} column ${_current().lineStart} expected indentation.`);
         }
         return _current(i).kind == kind;
+    }
+    let _isContextual = () => {
+        var i = 0;
+        var _context = context;
+        while (_current(i).kind == SyntaxKind.NewLine || _current(i).kind == SyntaxKind.IndentToken) {
+            if (_current(i).kind == SyntaxKind.NewLine) {
+                _context = 0;
+                i++;
+            }
+            else if (_current(i).kind == SyntaxKind.IndentToken) {
+                _context++;
+                i++;
+            }
+        }
+        return _context >= context && index + 1 < max;
     }
     let _isLiteral = (minContext?: number) => {
         var i = 0;
@@ -61,10 +82,6 @@ export const parser = (tokenList: IToken[]) => {
         while (_current(i).kind == SyntaxKind.NewLine || _current(i).kind == SyntaxKind.IndentToken) i++;
         return operators.indexOf(_current(i).kind) > -1;
     }
-    let context = 0;
-    let ast: IExpression[] = [];
-    let errors: Error[] = [];
-
     let _take = (kind?: SyntaxKind) => {
         _parseContextualNewline();
         var result = _current();
@@ -76,29 +93,21 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
 
     // Main parsing loop
     (() => {
+        let __i;
         while (index < max) {
-
-            // LET IS OPTIONAL IN THE CREATION OF A VARIABLE
-            if (_current().kind == SyntaxKind.LetKeywordToken) {
-                _take(SyntaxKind.LetKeywordToken);
-                ParseBlock(VariableDeclaration);
-            }
-            else if (_current().kind == SyntaxKind.TypeKeywordToken) {
-                ParseBlock(TypeDeclaration);
-            }
-            else if (_current().kind == SyntaxKind.IdentifierToken && _next().kind == SyntaxKind.TypeDef) {
-                ParseBlock(VariableDefinition);
-            }
-            else if (_current().kind == SyntaxKind.IdentifierToken) {
-                ParseBlock(VariableDeclaration);
-            }
-            else if (_current().kind == SyntaxKind.NewLine || _current().kind == SyntaxKind.IndentToken) index++;
+            if (_current().kind == SyntaxKind.NewLine || _current().kind == SyntaxKind.IndentToken) index++;
             else if (_current().kind == SyntaxKind.SemicolonToken) index++;
             else if (_current().kind == SyntaxKind.SingleLineCommentToken) index++;
             else if (_current().kind == SyntaxKind.MultiLineCommentToken) index++;
             else {
-                throw new Error(`Invalid parser for value: '${_current().value}'`);
+                ParseBlock(_parseExpression);
             }
+
+            if (__i === index) {
+                console.log(_current())
+                throw "Infinite loop detected...";
+            }
+            __i = index;
         }
     })();
 
@@ -118,96 +127,13 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         }
     }
 
-    function TypeDeclaration(): ITypeDeclaration {
-        _take(SyntaxKind.TypeKeywordToken);
-        let name = _parseIdenitifier();
-        let extensions: IIdentifierExpression[] = [];
-        let fields: IFieldDeclaration[] = [];
 
-        if (_current().kind == SyntaxKind.ExtendsKeywordToken) {
-            _take(SyntaxKind.ExtendsKeywordToken);
-            while (_current().kind == SyntaxKind.IdentifierToken) {
-                extensions.push(_parseIdenitifier());
-            }
-        }
-
-        if (_current().kind == SyntaxKind.EqualsToken) {
-            _take(SyntaxKind.EqualsToken);
-            while (_is(SyntaxKind.IdentifierToken)) {
-                let fieldName = _parseIdenitifier().root;
-                context++;
-                _take(SyntaxKind.ColonToken);
-                let fieldType = _parseIdenitifier();
-
-                let restrictions: IExpression[] = [];
-                while (_is(SyntaxKind.AmpersandToken)) {
-                    try {
-                        var t = _take(SyntaxKind.AmpersandToken);
-                        let restrictionExpression = _parseExpression();
-                        restrictions.push(restrictionExpression);
-                    }
-                    catch (ex) {
-
-                        console.log(ex);
-                    }
-                }
-                context--;
-                _take(SyntaxKind.SemicolonToken);
-
-                fields.push({
-                    kind: ExpressionKind.FieldDeclaration,
-                    name: fieldName,
-                    fieldType: fieldType,
-                    restrictions,
-                    type: Types.Undefined
-                });
-            }
-        }
-
-        return {
-            kind: ExpressionKind.TypeDeclaration,
-            name: name.root,
-            extensions,
-            fields,
-            type: Types.Undefined
-        };
-    }
-
-    function VariableDefinition(): IVariableDefinition {
-        let id = _parseExpression();
-        _take(SyntaxKind.TypeDef);
-        let parameters = [_parseExpression()];
-        while (_current().kind === SyntaxKind.NextParamToken) {
-            _take(SyntaxKind.NextParamToken);
-            parameters.push(_parseExpression());
-        }
-
-        return <IVariableDefinition>{
-            kind: ExpressionKind.VariableDefinition,
-            identifier: id,
-            parameters
-        }
-    }
-
-    function VariableDeclaration(): IVariableDeclarationExpression {
-        let name = _parseExpression();
-        _take(SyntaxKind.EqualsToken);
-        let expression = _parseExpression();
-        _take(SyntaxKind.SemicolonToken);
-
-        return <IVariableDeclarationExpression>{
-            kind: name.kind == ExpressionKind.FunctionApplicationExpression ? ExpressionKind.FunctionDefinitionExpression : ExpressionKind.VariableDeclaration,
-            name,
-            expression,
-            type: Types.Undefined
-        };
-    }
 
     function _parseIdenitifier(): IIdentifierExpression {
         let root = _take(SyntaxKind.IdentifierToken);
         let parts: IToken[] = [];
         while (_is(SyntaxKind.DotToken)) {
-            _take();
+            _take(SyntaxKind.DotToken);
             if (_is(SyntaxKind.IdentifierToken)) parts.push(_take());
             else throw "Indentifier fields are always identifiers themselves.";
         }
@@ -221,44 +147,113 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
 
     function _parseExpression(): IExpression {
         let left = _parseExpressionBuilder();
-        let parameters: IExpression[] = [];
+
+        /**
+         * Checking for other parameters. This is the way we finc functions
+         * and function application.
+         * 
+         * Example:
+         * add x y => x + y;
+         * ---               Identifier
+         *     ---           parameters
+         *         --        EqualsGreaterThanToken
+         *            -----  Body
+         */
+        let parameters = [];
+        if (left.kind == ExpressionKind.IdentifierExpression) {
+            let param = _parseExpressionBuilder();
+            while (param) {
+                parameters.push(param);
+                param = _parseExpressionBuilder();
+            }
+        }
+
+        function createLeft() {
+            if (parameters.length == 0) {
+                return left;
+            }
+            else {
+                return <IFunctionApplicationExpression>{
+                    kind: ExpressionKind.FunctionApplicationExpression,
+                    id: left,
+                    parameters
+                };
+            }
+        }
+
+        function parseClosure() {
+            let closure = [];
+            if (_is(SyntaxKind.WhereKeywordToken)) {
+                _take(SyntaxKind.WhereKeywordToken);
+                // the where token defines lexical scoping of the closure...
+                context++;
+                while (_isContextual()) {
+                    closure.push(_parseExpression());
+                }
+                context--;
+            }
+            return closure;
+        }
+        /* end of the parameter check */
+
         if (_isOperator()) {
             let operator = _take();
             let right = _parseExpression();
-            return <IBinaryExpression>{
-                kind: ExpressionKind.BinaryExpression,
-                left,
-                operator,
-                right,
-                type: Types.Undefined
-            };
-        }
-        else if (_current().kind == SyntaxKind.NoParams) {
-            _take(SyntaxKind.NoParams);
-            return <IFunctionApplicationExpression>{
-                kind: ExpressionKind.FunctionApplicationExpression,
-                id: (left as IIdentifierExpression).root,
-                parameters,
-                type: Types.Undefined
-            };
-        }
-        else if (_isIdentifier() || _isLiteral() || _is(SyntaxKind.OpenParenToken)) {
-            while (_isIdentifier() || _isLiteral() || _is(SyntaxKind.OpenParenToken)) {
-                parameters.push(_parseExpressionBuilder());
+
+            if (operator.kind == SyntaxKind.EqualsToken) {
+                // we don't think of '=' as a true operator but as an assignment
+                return <IAssignmentExpression>{
+                    kind: ExpressionKind.AssignmentExpression,
+                    id: createLeft(),
+                    body: right
+                };
             }
-            return <IFunctionApplicationExpression>{
-                kind: ExpressionKind.FunctionApplicationExpression,
-                id: (left as IIdentifierExpression).root,
+            else {
+                return <IBinaryExpression>{
+                    kind: ExpressionKind.BinaryExpression,
+                    left: createLeft(),
+                    operator,
+                    right,
+                    type: Types.Undefined
+                };
+            }
+        }
+        else if (_is(SyntaxKind.TypeDef)) {
+            _take(SyntaxKind.TypeDef);
+            let parameters = [_parseExpression()];
+            while (_is(SyntaxKind.NextParamToken)) {
+                _take(SyntaxKind.NextParamToken);
+                parameters.push(_parseExpression());
+            }
+
+            return <ITypeDefinition>{
+                kind: ExpressionKind.VariableDefinition,
+                id: left,
+                typeParameters: parameters
+            }
+        }
+        else if (_is(SyntaxKind.EqualsGreaterThanToken)) {
+            _take(SyntaxKind.EqualsGreaterThanToken);
+            let body = _parseExpression();
+            let closure = parseClosure();
+
+            return <IFunctionDeclarationExpression>{
+                kind: ExpressionKind.FunctionDefinitionExpression,
+                id: left,
                 parameters,
-                type: Types.Undefined
+                body,
+                closure
             };
         }
         else {
-            return left;
+            while (_is(SyntaxKind.EndStatement)) _take(SyntaxKind.EndStatement);
+            return createLeft();
         }
     }
 
     function _parseExpressionBuilder() {
+
+        if (!_isContextual()) return null;
 
         if (_is(SyntaxKind.IdentifierToken)) {
             return _parseIdenitifier();
@@ -285,6 +280,7 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
             };
         }
         else if (_is(SyntaxKind.NoParams)) {
+            _take(SyntaxKind.NoParams);
             return <IExpression>{
                 kind: ExpressionKind.EmptyParameters,
                 type: Types.Undefined
@@ -309,7 +305,8 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
             };
         }
         else {
-            throw new Error(`Invalid Expression: '${SyntaxKind[_current().kind]}' '${_current().value}'`);
+            //throw new Error(`Invalid Expression: '${SyntaxKind[_current().kind]}' '${_current().value}'`);
+            return null;
         }
     }
 
@@ -329,5 +326,59 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         }
     }
 
+    // function TypeDeclaration(): ITypeDeclaration {
+    //     _take(SyntaxKind.TypeKeywordToken);
+    //     let name = _parseIdenitifier();
+    //     let extensions: IIdentifierExpression[] = [];
+    //     let fields: IFieldDeclaration[] = [];
+
+    //     if (_current().kind == SyntaxKind.ExtendsKeywordToken) {
+    //         _take(SyntaxKind.ExtendsKeywordToken);
+    //         while (_current().kind == SyntaxKind.IdentifierToken) {
+    //             extensions.push(_parseIdenitifier());
+    //         }
+    //     }
+
+    //     if (_current().kind == SyntaxKind.EqualsToken) {
+    //         _take(SyntaxKind.EqualsToken);
+    //         while (_is(SyntaxKind.IdentifierToken)) {
+    //             let fieldName = _parseIdenitifier().root;
+    //             context++;
+    //             _take(SyntaxKind.ColonToken);
+    //             let fieldType = _parseIdenitifier();
+
+    //             let restrictions: IExpression[] = [];
+    //             while (_is(SyntaxKind.AmpersandToken)) {
+    //                 try {
+    //                     var t = _take(SyntaxKind.AmpersandToken);
+    //                     let restrictionExpression = _parseExpression();
+    //                     restrictions.push(restrictionExpression);
+    //                 }
+    //                 catch (ex) {
+
+    //                     console.log(ex);
+    //                 }
+    //             }
+    //             context--;
+    //             _take(SyntaxKind.SemicolonToken);
+
+    //             fields.push({
+    //                 kind: ExpressionKind.FieldDeclaration,
+    //                 name: fieldName,
+    //                 fieldType: fieldType,
+    //                 restrictions,
+    //                 type: Types.Undefined
+    //             });
+    //         }
+    //     }
+
+    //     return {
+    //         kind: ExpressionKind.TypeDeclaration,
+    //         name: name.root,
+    //         extensions,
+    //         fields,
+    //         type: Types.Undefined
+    //     };
+    // }
     return { ast, errors };
 }

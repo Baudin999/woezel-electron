@@ -13,10 +13,12 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 3000,
         height: 1200,
-        worldSafeExecuteJavaScript: true
+        worldSafeExecuteJavaScript: true,
+        autoHideMenuBar: true
     });
 
     mainWindow.loadURL(`file://${path.join(__dirname, '../public/index.html')}`);
+    mainWindow.webContents.openDevTools();
     mainWindow.on('closed', () => {
         mainWindow = null;
         if (watcher) {

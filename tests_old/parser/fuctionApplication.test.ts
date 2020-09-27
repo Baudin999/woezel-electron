@@ -1,7 +1,7 @@
 import { assert, expect } from "chai";
 import { it } from "mocha";
 import { SyntaxKind, ExpressionKind, IToken } from "../../src/Compiler/types";
-import type { IVariableDeclarationExpression } from "../../src/Compiler/types";
+import type { IAssignmentExpression } from "../../src/Compiler/types";
 import { lex } from "../../src/Compiler/lexer";
 import { parser } from "../../src/Compiler/parser";
 
@@ -14,8 +14,8 @@ describe('parser - Function Application', function () {
 let foo = add 3 4;`;
         let tokens = lex(code);
         let { ast, errors } = parser(tokens);
-        // console.log(ast[0])
-        assert.equal(ast[0].kind, ExpressionKind.VariableDeclaration);
+
+        assert.equal(ast[0].kind, ExpressionKind.AssignmentExpression);
         assert.equal(errors.length, 0);
     });
 

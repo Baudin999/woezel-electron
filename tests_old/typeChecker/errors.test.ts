@@ -1,7 +1,7 @@
 import { assert, expect } from "chai";
 import { it } from "mocha";
 import { parser } from "../../src/Compiler/parser";
-import type { IToken, IVariableDeclarationExpression } from "../../src/Compiler/types";
+import type { IToken, IAssignmentExpression } from "../../src/Compiler/types";
 import { Types } from "../../src/Compiler/types";
 import { lex } from "./../../src/Compiler/lexer";
 import { check } from "./../../src/Compiler/typeChecker";
@@ -29,7 +29,7 @@ foo = 40;
         let typeErrors = check(ast);
 
         assert.equal(typeErrors.length, 0);
-        assert.equal((ast[0] as IVariableDeclarationExpression).type, Types.Number);
+        assert.equal((ast[0] as IAssignmentExpression).type, Types.Number);
     });
     it('infer the type of a string', function () {
         let code = `
@@ -40,7 +40,7 @@ foo = "Bar";
         let typeErrors = check(ast);
 
         assert.equal(typeErrors.length, 0);
-        assert.equal((ast[0] as IVariableDeclarationExpression).type, Types.String);
+        assert.equal((ast[0] as IAssignmentExpression).type, Types.String);
     });
 
     it('Correct type definition - string', function () {
