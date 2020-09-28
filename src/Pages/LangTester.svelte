@@ -1,12 +1,12 @@
 <script type="ts">
   import { writable } from "svelte/store";
   import { Tabs, Tab, TabList, TabPanel } from "./../Controls/Tabs/index";
-  import { Expression, SyntaxKind } from "./../Compiler/types";
+  import { Expression, SyntaxKind, CompilerContext } from "./../Compiler/types";
   import Editor from "./../Controls/Editor.svelte";
   import StackPanel from "./../Controls/StackPanel.svelte";
   import Panel from "./../Controls/Panel.svelte";
   import type { IError } from "../Compiler/errorSink";
-  import { compile, CompilerContext } from "../Compiler/compiler";
+  import { compile } from "../Compiler/compiler";
   import { debounce } from "../Services/debounce";
 
   let txt = "";
@@ -21,7 +21,6 @@
     console.clear();
     messages = [];
     const text = event.detail;
-    localStorage.setItem("code", text);
     try {
       const { javascript, tokens, ast, errors } = compile(text, {
         format: false,
@@ -41,15 +40,19 @@
       messages = [...messages, result];
       compilationErrors = errors;
       markers.set(errors.map(mapErrorToken));
+
+      // store the parsed data only when everything went well..
+      localStorage.setItem("code", text);
     } catch (error) {
       console.log("Error on compile");
-      console.log(error.message);
+      console.error(error);
     } finally {
       //
     }
   });
 
   let mapErrorToken = (e: IError) => {
+    if (!e || !e.position) return;
     return {
       startLineNumber: e.position.startLine + 1,
       endLineNumber: e.position.endLine + 1,
@@ -101,9 +104,21 @@
     margin: 0;
     padding: 0;
     li {
+      overflow: hidden;
       margin: 0;
       padding: 1rem;
       border-bottom: 1px solid lightgrey;
+      white-space: -moz-pre-wrap !important; /* Mozilla, since 1999 */
+      white-space: -pre-wrap; /* Opera 4-6 */
+      white-space: -o-pre-wrap; /* Opera 7 */
+      white-space: pre-wrap; /* css-3 */
+      word-wrap: break-word; /* Internet Explorer 5.5+ */
+      white-space: -webkit-pre-wrap; /* Newer versions of Chrome/Safari*/
+      word-break: break-all;
+      white-space: normal;
+      pre {
+        margin: 0;
+      }
     }
   }
 </style>

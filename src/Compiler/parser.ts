@@ -1,5 +1,5 @@
 import { fix_and_outro_and_destroy_block } from "svelte/internal";
-import { ErrorSink, IError, IPosition } from "./errorSink";
+import { ErrorSink, ErrorType, IError, IPosition } from "./errorSink";
 import {
     IExpression,
     IAssignmentExpression,
@@ -9,7 +9,7 @@ import {
     IFunctionApplicationExpression,
     IFunctionDeclarationExpression,
     ITypeDefinition,
-    Types, Expression
+    Types, Expression, IListLiteralExpression
 } from "./types";
 import { ExpressionKind, IToken, SyntaxKind, operators } from "./types";
 
@@ -28,6 +28,7 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
 
     let _invalidIndentation = (i) => {
         errorSink.addError(<IError>{
+            type: ErrorType.SyntaxError,
             message: `Invalid indentation: line ${_current().line} column ${_current().columnStart} expected indentation.`,
             position: <IPosition>{
                 startColumn: _current().columnStart,
@@ -99,6 +100,7 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
         var result = _current();
         if (kind && result.kind !== kind) {
             errorSink.addError(<IError>{
+                type: ErrorType.SyntaxError,
                 message: `Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.columnStart} but received ${SyntaxKind[result.kind]}.`,
                 position: <IPosition>{
                     startColumn: _current().columnStart,
@@ -110,6 +112,22 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
         }
         index++;
         return result;
+    }
+    let getPosition = (start: IToken, end?: IToken) => {
+        return <IPosition>{
+            startColumn: start.columnStart,
+            endColumn: end?.columnEnd ?? start.columnEnd,
+            startLine: start.line,
+            endLine: end?.line ?? start.line,
+        }
+    }
+    let getPositionFromPositions = (start: IPosition, end?: IPosition) => {
+        return <IPosition>{
+            startColumn: start.startColumn,
+            endColumn: end?.endColumn ?? start.endColumn,
+            startLine: start.startLine,
+            endLine: end?.endLine ?? start.endLine,
+        }
     }
 
     // Main parsing loop
@@ -159,31 +177,31 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
             else {
                 let ps = [...parts, _current()];
                 errorSink.addError(<IError>{
-
+                    type: ErrorType.SyntaxError,
                     message: `Identifier fields are always Identifiers themselves:
 Foo.Bar
 
 Never something like:
 ${root.value}.${ps.map(p => p.value).join(".")}`,
-                    position: <IPosition>{
-                        startColumn: _current().columnStart,
-                        startLine: _current().line,
-                        endColumn: _current().columnEnd,
-                        endLine: _current().line
-                    }
+                    position: getPosition(_current())
                 });
             }
         }
+
+
         return {
             kind: ExpressionKind.IdentifierExpression,
             root,
             parts,
-            type: Types.Undefined
+            type: Types.Undefined,
+            position: getPosition(root, parts[parts.length - 1])
         }
     }
 
     function _parseExpression(): IExpression {
-        let left = _parseExpressionBuilder();
+        let left = _parseAtom();
+
+        if (left === null) return left;
 
         /**
          * Checking for other parameters. This is the way we finc functions
@@ -198,10 +216,10 @@ ${root.value}.${ps.map(p => p.value).join(".")}`,
          */
         let parameters = [];
         if (left.kind == ExpressionKind.IdentifierExpression) {
-            let param = _parseExpressionBuilder();
+            let param = _parseAtom();
             while (param) {
                 parameters.push(param);
-                param = _parseExpressionBuilder();
+                param = _parseAtom();
             }
         }
 
@@ -213,7 +231,8 @@ ${root.value}.${ps.map(p => p.value).join(".")}`,
                 return <IFunctionApplicationExpression>{
                     kind: ExpressionKind.FunctionApplicationExpression,
                     id: left,
-                    parameters
+                    parameters,
+                    position: getPositionFromPositions(left.position, parameters[parameters.length - 1])
                 };
             }
         }
@@ -235,23 +254,26 @@ ${root.value}.${ps.map(p => p.value).join(".")}`,
 
         if (_isOperator()) {
             let operator = _take();
+            let __left = createLeft();
             let right = _parseExpression();
 
             if (operator.kind == SyntaxKind.EqualsToken) {
                 // we don't think of '=' as a true operator but as an assignment
                 return <IAssignmentExpression>{
                     kind: ExpressionKind.AssignmentExpression,
-                    id: createLeft(),
-                    body: right
+                    id: __left,
+                    body: right,
+                    position: getPositionFromPositions(__left.position, right.position)
                 };
             }
             else {
                 return <IBinaryExpression>{
                     kind: ExpressionKind.BinaryExpression,
-                    left: createLeft(),
+                    left: __left,
                     operator,
                     right,
-                    type: Types.Undefined
+                    type: Types.Undefined,
+                    position: getPositionFromPositions(__left.position, right.position)
                 };
             }
         }
@@ -288,7 +310,7 @@ ${root.value}.${ps.map(p => p.value).join(".")}`,
         }
     }
 
-    function _parseExpressionBuilder() {
+    function _parseAtom() {
 
         if (!_isContextual()) return null;
 
@@ -296,57 +318,91 @@ ${root.value}.${ps.map(p => p.value).join(".")}`,
             return _parseIdenitifier();
         }
         else if (_is(SyntaxKind.StringLiteralToken)) {
+            let token = _take(SyntaxKind.StringLiteralToken);
             return <IUnaryExpression>{
                 kind: ExpressionKind.StringLiteralExpression,
-                expression: _take(SyntaxKind.StringLiteralToken),
-                type: Types.String
+                expression: token,
+                type: Types.String,
+                position: getPosition(token)
             };
         }
         else if (_is(SyntaxKind.NumberLiteralToken)) {
+            let token = _take(SyntaxKind.NumberLiteralToken);
             return <IUnaryExpression>{
                 kind: ExpressionKind.NumberLiteralExpression,
-                expression: _take(SyntaxKind.NumberLiteralToken),
-                type: Types.Number
+                expression: token,
+                type: Types.Number,
+                position: getPosition(token)
             };
         }
         else if (_is(SyntaxKind.BooleanLiteralToken)) {
+            let token = _take(SyntaxKind.BooleanLiteralToken);
             return <IUnaryExpression>{
                 kind: ExpressionKind.BooleanLiteralExpression,
-                expression: _take(SyntaxKind.BooleanLiteralToken),
-                type: Types.Boolean
+                expression: token,
+                type: Types.Boolean,
+                position: getPosition(token)
             };
         }
         else if (_is(SyntaxKind.NoParams)) {
-            _take(SyntaxKind.NoParams);
+            let token = _take(SyntaxKind.NoParams);
             return <IExpression>{
-                kind: ExpressionKind.EmptyParameters,
-                type: Types.Undefined
+                kind: ExpressionKind.NoParams,
+                type: Types.Undefined,
+                position: getPosition(token)
+            };
+        }
+
+        else if (_is(SyntaxKind.OpenBracketToken)) {
+            let start = _take(SyntaxKind.OpenBracketToken);
+            let items = [];
+            let item = _parseExpression();
+            while (item) {
+                items.push(item);
+                if (_is(SyntaxKind.CommaToken)) {
+                    let comma = _take(SyntaxKind.CommaToken);
+                    item = _parseExpression();
+
+                    if (!item) {
+                        errorSink.addError({
+                            type: ErrorType.SyntaxError,
+                            message: `Trailing commas are not allowed in list literal definitions.`,
+                            position: getPosition(comma)
+                        });
+                    }
+                } else {
+                    item = null;
+                }
+            }
+            let end = _take(SyntaxKind.CloseBracketToken);
+
+            return <IListLiteralExpression>{
+                items,
+                kind: ExpressionKind.ListLiteralExpression,
+                position: getPosition(start, end)
             };
         }
 
         // Example: (2 + 3)
         else if (_is(SyntaxKind.OpenParenToken)) {
-            let t = _take(SyntaxKind.OpenParenToken);
+            let start = _take(SyntaxKind.OpenParenToken);
+            let end;
             var expression = _parseExpression();
             if (!_is(SyntaxKind.CloseParenToken)) {
                 errorSink.addError(<IError>{
                     message: `Parathesis should be closed.`,
-                    position: <IPosition>{
-                        startColumn: t.columnStart,
-                        startLine: t.line,
-                        endColumn: _current().columnEnd,
-                        endLine: _current().line
-                    }
+                    position: getPosition(start, _current())
                 });
             }
             else {
-                _take(SyntaxKind.CloseParenToken);
+                end = _take(SyntaxKind.CloseParenToken);
             }
 
             return <IUnaryExpression>{
                 kind: ExpressionKind.ParenthesizedExpression,
                 expression,
-                type: Types.Undefined
+                type: Types.Undefined,
+                position: getPosition(start, end)
             };
         }
         else {

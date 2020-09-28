@@ -1,4 +1,4 @@
-import { ErrorSink } from "./errorSink";
+import { ErrorSink, ErrorType } from "./errorSink";
 import {
     ExpressionKind,
     IBinaryExpression,
@@ -10,7 +10,7 @@ import {
     ITypeDefinition,
     IAssignmentExpression,
     SyntaxKind,
-    Types
+    Types, IFunctionDeclarationExpression
 } from "./types";
 
 
@@ -19,6 +19,7 @@ export function check(ast: IExpression[], errorSink: ErrorSink = new ErrorSink()
 
 
     var globalDefinitions = new Map();
+    var context = new Map();
     var errors = [];
 
     function visitVariableDefinition(node: ITypeDefinition) {
@@ -26,6 +27,7 @@ export function check(ast: IExpression[], errorSink: ErrorSink = new ErrorSink()
 
         if (globalDefinitions.has(name)) {
             errorSink.addError({
+                type: ErrorType.TypeError,
                 message: `Type ${name} already exists, not allowed to declare a variable twice.`,
                 position: {
                     startColumn: node.id.root.columnStart,
@@ -60,18 +62,106 @@ export function check(ast: IExpression[], errorSink: ErrorSink = new ErrorSink()
 
         if (globalDefinition) {
             if (globalDefinition.type !== node.type) {
-                console.log(node)
                 errorSink.addError({
+                    type: ErrorType.TypeError,
                     message: `Your variable is defined as a '${Types[globalDefinition.type]}' but the inferred type is '${Types[node.type]}'. 
 An expression can't change it's type.`,
-                    position: {
-                        startColumn: node.id.root.columnStart,
-                        endColumn: node.id.root.columnEnd,
-                        startLine: node.id.root.line,
-                        endLine: node.id.root.line
-                    }
+                    position: node.id.position
                 });
             }
+        }
+    }
+
+    function visitFunctionDefinitionExpression(node: IFunctionDeclarationExpression) {
+        let def = globalDefinitions.get(node.id.root.value) as ITypeDefinition;
+
+
+        context = new Map<string, IIdentifierExpression>();
+        node.parameters.forEach((p, i) => {
+            if (p.kind !== ExpressionKind.NoParams) {
+                let param = p as IIdentifierExpression;
+                context.set(param.root.value, param);
+            }
+        });
+        visit(node.body);
+
+        if (def) {
+            let paramCount = def.typeParameters.length - 1;
+            let returnType = def.typeParameters[def.typeParameters.length - 1];
+            if (node.parameters.length !== paramCount) {
+                errorSink.addError({
+                    type: ErrorType.TypeError,
+                    message: `Function '${node.id.root.value}' was expected to have ${def.typeParameters.length - 1} parameters but was found to have ${node.parameters.length}. The arity of a function can not be modified at runtime.`,
+                    position: node.id.position
+                });
+            }
+
+            if (def.typeParameters.length > 0) {
+                node.type = returnType.type;
+            }
+
+
+            node.parameters.forEach((p, i) => {
+                if (p.type == Types.Undefined) {
+                    errorSink.addError({
+                        type: ErrorType.TypeError,
+                        message: `Parameter '${(p as IIdentifierExpression).root.value}' is unused, you should remove the parameter.`,
+                        position: p.position
+                    });
+                }
+                else if (i < paramCount && Types[def.typeParameters[i].type] !== Types[p.type]) {
+                    errorSink.addError({
+                        type: ErrorType.TypeError,
+                        message: `Parameter '${(p as IIdentifierExpression).root.value}' was expected to have type '${Types[def.typeParameters[i].type]}' but was inferred to have type '${Types[p.type]}.'`,
+                        position: p.position
+                    });
+                }
+
+                if (i >= paramCount) {
+                    errorSink.addError({
+                        type: ErrorType.TypeError,
+                        message: `Parameter '${(p as IIdentifierExpression).root.value}' was not declared in the type definition of this function.`,
+                        position: p.position
+                    });
+                }
+            });
+
+        }
+    }
+
+    function visitBinaryExpression(node: IBinaryExpression) {
+        if (node.operator.kind === SyntaxKind.PlusToken ||
+            node.operator.kind === SyntaxKind.MinusToken ||
+            node.operator.kind === SyntaxKind.AsteriskToken ||
+            node.operator.kind === SyntaxKind.SlashToken ||
+            node.operator.kind === SyntaxKind.PercentToken) {
+            if (node.left.type == Types.Undefined) {
+                node.left.type = Types.Number;
+            } else if (node.left.type == Types.Number) {
+                // this is perfect!
+            }
+            else {
+                errorSink.addError({
+                    type: ErrorType.TypeError,
+                    message: `Operator '+' can only be applied to two numbers, but found type '${Types[node.left.type]}'`,
+                    position: node.left.position
+                });
+            }
+            visit(node.left);
+
+            if (node.right.type == Types.Undefined) {
+                node.right.type = Types.Number;
+            } else if (node.right.type == Types.Number) {
+                // this is perfect!
+            }
+            else {
+                errorSink.addError({
+                    type: ErrorType.TypeError,
+                    message: `Operator '+' can only be applied to two numbers, but found type '${Types[node.right.type]}'`,
+                    position: node.right.position
+                });
+            }
+            visit(node.right);
         }
     }
 
@@ -83,6 +173,15 @@ An expression can't change it's type.`,
         if (node.root.value === "datetime") node.type = Types.DateTime;
         if (node.root.value === "time") node.type = Types.Time;
         if (node.root.value === "boolean") node.type = Types.Boolean;
+
+        let param = context.get(node.root.value);
+        if (param && param.type === Types.Undefined) {
+            param.type = node.type;
+        }
+
+        if (param && param.type !== node.type) {
+            console.log("asdasdas")
+        }
     }
 
     function visitUnaryExpression(node: IUnaryExpression) {
@@ -109,12 +208,14 @@ An expression can't change it's type.`,
                 return visitVariableDeclaration(node as IAssignmentExpression);
             case ExpressionKind.IdentifierExpression:
                 return visitIdentifierExpression(node as IIdentifierExpression);
+            case ExpressionKind.FunctionDefinitionExpression:
+                return visitFunctionDefinitionExpression(node as IFunctionDeclarationExpression);
             // case ExpressionKind.FunctionApplicationExpression:
             //     return visitFunctionApplicationExpression(node as IFunctionApplicationExpression);
             // case ExpressionKind.FunctionDefinitionExpression:
             //     return visitFunctionDefinitionExpression(node as IVariableExpression);
-            // case ExpressionKind.BinaryExpression:
-            //     return visitBinaryExpression(node as IBinaryExpression);
+            case ExpressionKind.BinaryExpression:
+                return visitBinaryExpression(node as IBinaryExpression);
             case ExpressionKind.UnaryExpression:
                 return visitUnaryExpression(node as IUnaryExpression);
             // case ExpressionKind.ParenthesizedExpression:
@@ -127,6 +228,7 @@ An expression can't change it's type.`,
             //     return "";
         }
     }
+
 
     ast.map(node => visit(node));
     return errors;

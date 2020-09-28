@@ -310,6 +310,22 @@ export function lex(sourceCode: SourceCode, errorSink: ErrorSink = new ErrorSink
             _take();
             pushToken(SyntaxKind.CloseParenToken);
         }
+        else if (currentChar == CharacterCodes.openBracket) {
+            _take();
+            pushToken(SyntaxKind.OpenBracketToken);
+        }
+        else if (currentChar == CharacterCodes.closeBracket) {
+            _take();
+            pushToken(SyntaxKind.CloseBracketToken);
+        }
+        else if (currentChar == CharacterCodes.openBrace) {
+            _take();
+            pushToken(SyntaxKind.OpenBraceToken);
+        }
+        else if (currentChar == CharacterCodes.closeBrace) {
+            _take();
+            pushToken(SyntaxKind.CloseBraceToken);
+        }
         else if (isStartSingleLineComment(currentChar, _nextCode())) {
             _consumeSingleLineComment();
         }

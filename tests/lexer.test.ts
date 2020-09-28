@@ -34,15 +34,16 @@ foo = 2`);
 
     it('lex code', function () {
         let code = new SourceCode(`
-    extra = "ghij"
-    bar () => 
-        concat "ab" other another extra
-        where
-            other = "c"
-            another = "def"
+extra :: string
+extra = "ghij"
+bar () => 
+    concat "ab" other another extra
+    where
+        other = "c"
+        another = "def"
 
-    main () =>
-        bar ()
+main () =>
+    bar ()
     `);
         let tokens = lex(code);
         verifyTokens(code, tokens);

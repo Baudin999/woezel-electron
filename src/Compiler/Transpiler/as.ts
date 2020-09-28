@@ -1,10 +1,12 @@
 
+// THE ACTIONSCRIPT TRANSPILER
+
+
 /**
  * This module will transpile the generated AST to JavaScript
  * Please look at the documentation for more information about
  * the language and the supported features.
  */
-
 import { CompilerContext, ICompilerOptions } from "../types";
 import {
     ExpressionKind,
@@ -27,7 +29,7 @@ function visitFunctionDefinitionExpression(node: IFunctionDeclarationExpression)
             "()" :
             `(${node.parameters.map(p => visit(p)).join(", ")})`;
 
-    return `const ${node.id.root.value} = ${parameters} => {
+    return `function ${visit(node.id)} ${parameters} {
     ${node.closure.map(c => visit(c)).join("\n")}
     return ${visit(node.body)};
 }`;
@@ -113,7 +115,7 @@ export function transpile(ast: IExpression[], options: ICompilerOptions) {
     let hasMain = false;
     ast.forEach(node => {
         if (node.kind == ExpressionKind.FunctionDefinitionExpression) {
-            if ((<IFunctionDeclarationExpression>(node)).id.root.value === "main") hasMain = true;
+            if ((<IAssignmentExpression>(node)).id.root.value === "main") hasMain = true;
         }
     });
 

@@ -1,3 +1,4 @@
+import type { IPosition } from "./errorSink";
 
 export interface IToken {
     value: string;
@@ -278,6 +279,9 @@ export enum ExpressionKind {
     TimeLiteralExpression,
     MoneyLiteralExpression,
 
+    // lists + tuples
+    ListLiteralExpression,
+
     // constructs
     AssignmentExpression,                   // foo = 2
     IdentifierExpression,                   // foo
@@ -286,13 +290,14 @@ export enum ExpressionKind {
     UnaryExpression,                        // "unary"
     FunctionApplicationExpression,          // add 2 3
     FunctionDefinitionExpression,           // add x y => x + y;
-    EmptyParameters                         // ()
+    NoParams                                // ()
 }
 
 
 export interface IExpression {
     kind: ExpressionKind;
     type: Types;
+    position: IPosition;
 }
 export interface ITypeDefinition extends IExpression {
     id: IIdentifierExpression;
@@ -324,6 +329,9 @@ export interface IBinaryExpression extends IExpression {
     operator: IToken;
     right: IExpression;
 }
+export interface IListLiteralExpression extends IExpression {
+    items: IExpression[];
+}
 
 // export interface ITypeDeclaration extends IExpression {
 //     name: IToken;
@@ -343,19 +351,21 @@ export class Expression implements IExpression {
     _kind: string;
     type: Types;
     _type: string;
+    position: IPosition;
 
     constructor(e: IExpression) {
         this.kind = e.kind;
         this._kind = ExpressionKind[this.kind];
         this.type = e.type;
         this._type = Types[e.type];
+        this.position = e.position;
 
         Object.keys(e).forEach(key => {
             var value = e[key];
-            if ((value.kind || value.kind == 0) && value.lineStart !== 0 && !value.lineStart) {
+            if (value && (value.kind || value.kind == 0) && value.lineStart !== 0 && !value.lineStart) {
                 this[key] = new Expression(value);
             }
-            else if (value.lineStart >= 0) {
+            else if (value && value.lineStart >= 0) {
                 this[key] = new Token(value);
             }
             else if (Array.isArray(value)) {
@@ -397,3 +407,15 @@ export enum Types {
     Time,
     Undefined
 }
+
+
+export enum CompilerContext {
+    Browser,
+    Node
+};
+
+export interface ICompilerOptions {
+    format: boolean;
+    context: CompilerContext;
+}
+

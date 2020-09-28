@@ -6,17 +6,7 @@ import prettier from "prettier";
 import babel from "@babel/parser";
 import { ErrorSink } from "./errorSink";
 import { SourceCode } from "./sourceCode";
-
-
-export enum CompilerContext {
-    Browser,
-    Node
-};
-
-export interface ICompilerOptions {
-    format: boolean;
-    context: CompilerContext;
-}
+import { CompilerContext, ICompilerOptions } from "./types";
 
 const defaultOptions: ICompilerOptions = {
     format: false,
@@ -41,5 +31,5 @@ export const compile = (code, options: ICompilerOptions = defaultOptions) => {
         javascript = transpile(ast, options);
     }
 
-    return { javascript, errors: [...errors, ...typeErrors], ast, tokens };
+    return { javascript, errors: errorSink, ast, tokens };
 }
