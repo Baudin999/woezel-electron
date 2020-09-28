@@ -1,4 +1,5 @@
 
+import { CompilerContext, ICompilerOptions } from "../compiler";
 /**
  * This module will transpile the generated AST to JavaScript
  * Please look at the documentation for more information about
@@ -14,7 +15,7 @@ import {
     IToken,
     IUnaryExpression,
     IAssignmentExpression,
-    SyntaxKind, IFunctionDeclarationExpression, Expression
+    SyntaxKind, IFunctionDeclarationExpression
 } from "./../types";
 import { baseLibrary } from "./js_base";
 
@@ -27,7 +28,7 @@ function visitFunctionDefinitionExpression(node: IFunctionDeclarationExpression)
             `(${node.parameters.map(p => visit(p)).join(", ")})`;
 
     return `function ${visit(node.id)} ${parameters} {
-    ${node.closure.map(c => visit(c)).join("")}
+    ${node.closure.map(c => visit(c)).join("\n")}
     return ${visit(node.body)};
 }`;
 }
@@ -108,7 +109,7 @@ function visit(node: IExpression) {
 }
 
 
-export function transpile(ast: IExpression[]) {
+export function transpile(ast: IExpression[], options: ICompilerOptions) {
     let hasMain = false;
     ast.forEach(node => {
         if (node.kind == ExpressionKind.FunctionDefinitionExpression) {
@@ -120,7 +121,23 @@ export function transpile(ast: IExpression[]) {
         return visit(node);
     }).join("\n\n");
 
-    return `    
+
+    // defpending on the compiler options we'll want to return the right 
+    // string. For example, in our unit tests we'll want to return something
+    // which, when evaluated, will give us a result without printing to the 
+    // screen.
+    if (options.context == CompilerContext.Browser) {
+        return `    
+(() => {
+${baseLibrary}
+;
+    ${content}
+    ${hasMain ? "return main();" : ""}
+})();
+    `;
+    }
+    else if (options.context == CompilerContext.Node) {
+        return `    
 ${baseLibrary}
 ;
 
@@ -129,4 +146,6 @@ return (() => {
     ${hasMain ? "return main();" : ""}
 })();
 `;
+    }
+
 }

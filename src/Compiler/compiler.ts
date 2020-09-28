@@ -5,18 +5,40 @@ import { check } from "./typeChecker";
 import prettier from "prettier";
 import babel from "@babel/parser";
 import { ErrorSink } from "./errorSink";
+import { SourceCode } from "./sourceCode";
 
 
-export const compile = (code, format = false) => {
+export enum CompilerContext {
+    Browser,
+    Node
+};
+
+export interface ICompilerOptions {
+    format: boolean;
+    context: CompilerContext;
+}
+
+const defaultOptions: ICompilerOptions = {
+    format: false,
+    context: CompilerContext.Browser
+};
+
+export const compile = (code, options: ICompilerOptions = defaultOptions) => {
+    const sourceCode = new SourceCode(code);
     const errorSink = new ErrorSink();
-    const tokens = lex(code, errorSink);
+    const tokens = lex(sourceCode, errorSink);
     const { ast, errors } = parser(tokens, errorSink);
     const typeErrors = check(ast, errorSink);
     let javascript;
-    if (format) {
-        javascript = prettier.format(transpile(ast), { parser: babel.parse });
+    if (options.format) {
+        try {
+            let text = transpile(ast, options);
+            javascript = prettier.format(text, { parser: babel.parse });
+        } catch (error) {
+            console.log("Prettier Error: ", error);
+        }
     } else {
-        javascript = transpile(ast);
+        javascript = transpile(ast, options);
     }
 
     return { javascript, errors: [...errors, ...typeErrors], ast, tokens };

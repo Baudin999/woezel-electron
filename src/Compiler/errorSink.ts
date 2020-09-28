@@ -34,6 +34,7 @@ export class TypeError implements IError {
 
 export class ErrorSink {
     errors: IError[] = [];
+    [Symbol.iterator]() { return this.errors.values() }
 
     addError(error: IError) {
         this.errors.push(error);

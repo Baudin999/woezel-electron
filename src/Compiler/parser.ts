@@ -1,5 +1,5 @@
 import { fix_and_outro_and_destroy_block } from "svelte/internal";
-import { ErrorSink } from "./errorSink";
+import { ErrorSink, IError, IPosition } from "./errorSink";
 import {
     IExpression,
     IAssignmentExpression,
@@ -26,6 +26,18 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
     let ast: IExpression[] = [];
     let errors: Error[] = [];
 
+    let _invalidIndentation = (i) => {
+        errorSink.addError(<IError>{
+            message: `Invalid indentation: line ${_current().line} column ${_current().lineStart} expected indentation.`,
+            position: <IPosition>{
+                startIndex: _current().lineStart,
+                startLine: _current().line,
+                endIndex: _current(i).lineEnd,
+                endLine: _current(i).line
+            }
+        });
+    }
+
     let _current = (n = 0) => tokens[index + n] || { value: "", line: -1, lineStart: -1, lineEnd: -1, fileStart: -1, fileEnd: -1, kind: SyntaxKind.Unknown };
     let _next = () => {
         var i = 1;
@@ -36,7 +48,7 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
         var i = 0;
         while (_current(i).kind == SyntaxKind.NewLine || _current(i).kind == SyntaxKind.IndentToken) i++;
         if (minContext && i < minContext) {
-            throw new Error(`Invalid indentation: line ${_current().line} column ${_current().lineStart} expected indentation.`);
+            _invalidIndentation(i);
         }
         return _current(i).kind == kind;
     }
@@ -59,7 +71,7 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
         var i = 0;
         while (_current(i).kind == SyntaxKind.NewLine || _current(i).kind == SyntaxKind.IndentToken) i++;
         if (minContext && i < minContext) {
-            throw new Error(`Invalid indentation: line ${_current().line} column ${_current().lineStart} expected indentation.`);
+            _invalidIndentation(i);
         }
         var kind = _current(i).kind;
         return kind == SyntaxKind.StringLiteralToken
@@ -73,7 +85,7 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
         var i = 0;
         while (_current(i).kind == SyntaxKind.NewLine || _current(i).kind == SyntaxKind.IndentToken) i++;
         if (minContext && i < minContext) {
-            throw new Error(`Invalid indentation: line ${_current().line} column ${_current().lineStart} expected indentation.`);
+            _invalidIndentation(i);
         }
         return _current(i).kind == SyntaxKind.IdentifierToken;
     }
@@ -85,8 +97,17 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
     let _take = (kind?: SyntaxKind) => {
         _parseContextualNewline();
         var result = _current();
-        if (kind && result.kind !== kind) throw new Error(`
-Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} but received ${SyntaxKind[result.kind]}.`);
+        if (kind && result.kind !== kind) {
+            errorSink.addError(<IError>{
+                message: `Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} but received ${SyntaxKind[result.kind]}.`,
+                position: <IPosition>{
+                    startIndex: _current().lineStart,
+                    startLine: _current().line,
+                    endIndex: _current().lineEnd,
+                    endLine: _current().line
+                }
+            });
+        }
         index++;
         return result;
     }
@@ -135,7 +156,23 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
         while (_is(SyntaxKind.DotToken)) {
             _take(SyntaxKind.DotToken);
             if (_is(SyntaxKind.IdentifierToken)) parts.push(_take());
-            else throw "Indentifier fields are always identifiers themselves.";
+            else {
+                let ps = [...parts, _current()];
+                errorSink.addError(<IError>{
+
+                    message: `Identifier fields are always Identifiers themselves:
+Foo.Bar
+
+Never something like:
+${root.value}.${ps.map(p => p.value).join(".")}`,
+                    position: <IPosition>{
+                        startIndex: _current().lineStart,
+                        startLine: _current().line,
+                        endIndex: _current().lineEnd,
+                        endLine: _current().line
+                    }
+                });
+            }
         }
         return {
             kind: ExpressionKind.IdentifierExpression,
@@ -289,10 +326,18 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
 
         // Example: (2 + 3)
         else if (_is(SyntaxKind.OpenParenToken)) {
-            _take(SyntaxKind.OpenParenToken);
+            let t = _take(SyntaxKind.OpenParenToken);
             var expression = _parseExpression();
             if (!_is(SyntaxKind.CloseParenToken)) {
-                throw new Error("Params should be closed");
+                errorSink.addError(<IError>{
+                    message: `Parathesis should be closed.`,
+                    position: <IPosition>{
+                        startIndex: t.lineStart,
+                        startLine: t.line,
+                        endIndex: _current().lineEnd,
+                        endLine: _current().line
+                    }
+                });
             }
             else {
                 _take(SyntaxKind.CloseParenToken);
@@ -312,6 +357,7 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
 
 
     function _parseContextualNewline() {
+        let oldIndex = index;
         if (_current().kind == SyntaxKind.NewLine) {
             index++;
             for (let i = 0; i < context; ++i) {
@@ -319,7 +365,7 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
                     index++;
                 }
                 else {
-                    throw new Error(`Invalid indentation: line ${_current().line} column ${_current().lineStart}`);
+                    _invalidIndentation(0);
                 }
             }
             while (_current().kind == SyntaxKind.IndentToken) index++;
@@ -380,5 +426,5 @@ Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} b
     //         type: Types.Undefined
     //     };
     // }
-    return { ast, errors };
+    return { ast, errors: errorSink };
 }

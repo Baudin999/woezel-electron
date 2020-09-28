@@ -3,7 +3,8 @@ import type { MapLike } from "./core";
 import { CharacterCodes, SyntaxKind } from "./types";
 import type { KeywordSyntaxKind, IToken } from "./types";
 import { text } from "svelte/internal";
-import { ErrorSink } from "./errorSink";
+import { ErrorSink, IError, IPosition } from "./errorSink";
+import type { SourceCode } from "./sourceCode";
 
 const textToKeywordObj: MapLike<KeywordSyntaxKind> = {
     type: SyntaxKind.TypeKeywordToken,
@@ -117,11 +118,11 @@ function lookupInUnicodeMap(code: number, map: readonly number[]): boolean {
     return false;
 }
 
-export function lex(code: string, errorSink: ErrorSink = new ErrorSink()) {
-    code = code.replace("\r\n", "\n");
+export function lex(sourceCode: SourceCode, errorSink: ErrorSink = new ErrorSink()) {
     const tabLength = 4;
     let index = 0;
-    let max = code.length;
+    const code = sourceCode.code;
+    const max = sourceCode.length;
     let line = 0;
     let lineIndex = 0;
     let tokens: IToken[] = [];
@@ -140,7 +141,11 @@ export function lex(code: string, errorSink: ErrorSink = new ErrorSink()) {
     let loopTrapFunction = (n: number = 100) => {
         if (currentChar === _currentCode()) loopTrap++;
         else loopTrap = 0;
-        if (loopTrap > n) throw `Loop trapped, repeating element: '${_current()}' @${index} ${_at(-3)}${_at(-2)}${_at(-1)}${_at(0)}${_at(1)}${_at(2)}${_at(3)}`;
+        if (loopTrap > n) {
+            // we're trapping a loop because we do not want infinite cycles, 
+            // ugly but necessairy for now...
+            throw `Loop trapped, repeating element: '${_current()}' @${index} ${_at(-3)}${_at(-2)}${_at(-1)}${_at(0)}${_at(1)}${_at(2)}${_at(3)}`;
+        }
     }
     let _take = () => {
         value += _current();
@@ -240,7 +245,13 @@ export function lex(code: string, errorSink: ErrorSink = new ErrorSink()) {
     let _consumeStringLiteral = () => {
         _take(); // take first quote
         _consumeWhile(c => !isStringStart(c));
-        _take(); // take last quote
+
+        // someone might have forgotten to close a string...
+        // and we do not think of strings as only one liners, but
+        // they can stretch over multiple lines.
+        if (isStringStart(_currentCode())) {
+            _take(); // take last quote
+        }
         pushToken(SyntaxKind.StringLiteralToken);
     }
     let _consumeNewline = () => {
@@ -329,7 +340,15 @@ export function lex(code: string, errorSink: ErrorSink = new ErrorSink()) {
             _consumeNumber();
         }
         else {
-            throw `Unknown token exception: ${_current()} (${_currentCode()})`;
+            errorSink.addError(<IError>{
+                message: `Unknown symbol exception: ${_current()} (${_currentCode()})`,
+                position: <IPosition>{
+                    startIndex: index,
+                    endIndex: index + 1,
+                    startLine: line,
+                    endLine: line
+                }
+            });
         }
 
         loopTrapFunction();

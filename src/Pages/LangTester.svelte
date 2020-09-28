@@ -4,8 +4,10 @@
   import Editor from "./../Controls/Editor.svelte";
   import StackPanel from "./../Controls/StackPanel.svelte";
   import Panel from "./../Controls/Panel.svelte";
-  import { compile } from "../Compiler/compiler";
+  import { compile, CompilerContext } from "../Compiler/compiler";
   import { debounce } from "../Services/debounce";
+  import prettier from "prettier";
+  import babel from "@babel/parser";
 
   let txt = "";
   let tokensJson = "";
@@ -15,18 +17,17 @@
   let compilationErrors = [];
 
   let textChanged = debounce((event) => {
+    console.clear();
+    messages = [];
     const text = event.detail;
     localStorage.setItem("code", text);
-    console.log("start compile");
-    const { javascript, tokens, ast, errors } = compile(text, true);
-    console.log("finished compile");
-    let old = console.log;
     try {
-      messages = [];
-      console.log = function (...args) {
-        old.apply(null, args);
-        messages.push(args);
-      };
+      console.log("start compile");
+      const { javascript, tokens, ast, errors } = compile(text, {
+        format: false,
+        context: CompilerContext.Node,
+      });
+      console.log("finished compile");
       const displayTokens = tokens.map((t) => {
         return { ...t, kind: SyntaxKind[t.kind] };
       });
@@ -37,14 +38,12 @@
         4
       );
       jsText = javascript;
-      console.clear();
-      var evalResult = Function(javascript);
-      evalResult();
-    } catch (error) {
-      console.error(error.message);
-    } finally {
-      console.log = old;
+      var result = Function(javascript)();
+      messages = [...messages, result];
       compilationErrors = errors;
+    } catch (error) {
+      console.log(error.message);
+    } finally {
       console.log("done...");
     }
   });
@@ -114,7 +113,7 @@
               <ul class="messages">
                 {#each compilationErrors as error}
                   <li>
-                    <pre>{error}</pre>
+                    <pre>{error.message}</pre>
                   </li>
                 {/each}
               </ul>

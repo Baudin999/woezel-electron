@@ -25,7 +25,15 @@ export function check(ast: IExpression[], errorSink: ErrorSink = new ErrorSink()
         var name = node.id.root.value;
 
         if (globalDefinitions.has(name)) {
-            errors.push(`Type ${name} already exists, not allowed to declare a variable twice.`);
+            errorSink.addError({
+                message: `Type ${name} already exists, not allowed to declare a variable twice.`,
+                position: {
+                    startIndex: node.id.root.lineStart,
+                    endIndex: node.id.root.lineEnd,
+                    startLine: node.id.root.line,
+                    endLine: node.id.root.line
+                }
+            });
         }
 
         node.typeParameters.forEach(param => visit(param));
@@ -52,8 +60,16 @@ export function check(ast: IExpression[], errorSink: ErrorSink = new ErrorSink()
 
         if (globalDefinition) {
             if (globalDefinition.type !== node.type) {
-                errors.push(`Your variable is defined as a ${Types[globalDefinition.type]} but the inferred type is ${Types[node.type]}. 
-An expression can't change it's type.`);
+                errorSink.addError({
+                    message: `Your variable is defined as a ${Types[globalDefinition.type]} but the inferred type is ${Types[node.type]}. 
+An expression can't change it's type.`,
+                    position: {
+                        startIndex: node.id.root.lineStart,
+                        endIndex: node.id.root.lineStart + 5,
+                        startLine: node.id.root.line,
+                        endLine: node.id.root.line
+                    }
+                });
             }
         }
     }
