@@ -28,17 +28,17 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
 
     let _invalidIndentation = (i) => {
         errorSink.addError(<IError>{
-            message: `Invalid indentation: line ${_current().line} column ${_current().lineStart} expected indentation.`,
+            message: `Invalid indentation: line ${_current().line} column ${_current().columnStart} expected indentation.`,
             position: <IPosition>{
-                startIndex: _current().lineStart,
+                startColumn: _current().columnStart,
                 startLine: _current().line,
-                endIndex: _current(i).lineEnd,
+                endColumn: _current(i).columnEnd,
                 endLine: _current(i).line
             }
         });
     }
 
-    let _current = (n = 0) => tokens[index + n] || { value: "", line: -1, lineStart: -1, lineEnd: -1, fileStart: -1, fileEnd: -1, kind: SyntaxKind.Unknown };
+    let _current = (n = 0) => tokens[index + n] || { value: "", line: -1, columnStart: -1, columnEnd: -1, fileStart: -1, fileEnd: -1, kind: SyntaxKind.Unknown };
     let _next = () => {
         var i = 1;
         while (_current(i).kind == SyntaxKind.NewLine || _current(i).kind == SyntaxKind.IndentToken) i++;
@@ -99,11 +99,11 @@ export const parser = (tokenList: IToken[], errorSink: ErrorSink = new ErrorSink
         var result = _current();
         if (kind && result.kind !== kind) {
             errorSink.addError(<IError>{
-                message: `Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.lineStart} but received ${SyntaxKind[result.kind]}.`,
+                message: `Expected ${SyntaxKind[kind]} on line ${result.line} column ${result.columnStart} but received ${SyntaxKind[result.kind]}.`,
                 position: <IPosition>{
-                    startIndex: _current().lineStart,
+                    startColumn: _current().columnStart,
                     startLine: _current().line,
-                    endIndex: _current().lineEnd,
+                    endColumn: _current().columnEnd,
                     endLine: _current().line
                 }
             });
@@ -166,9 +166,9 @@ Foo.Bar
 Never something like:
 ${root.value}.${ps.map(p => p.value).join(".")}`,
                     position: <IPosition>{
-                        startIndex: _current().lineStart,
+                        startColumn: _current().columnStart,
                         startLine: _current().line,
-                        endIndex: _current().lineEnd,
+                        endColumn: _current().columnEnd,
                         endLine: _current().line
                     }
                 });
@@ -332,9 +332,9 @@ ${root.value}.${ps.map(p => p.value).join(".")}`,
                 errorSink.addError(<IError>{
                     message: `Parathesis should be closed.`,
                     position: <IPosition>{
-                        startIndex: t.lineStart,
+                        startColumn: t.columnStart,
                         startLine: t.line,
-                        endIndex: _current().lineEnd,
+                        endColumn: _current().columnEnd,
                         endLine: _current().line
                     }
                 });

@@ -46,7 +46,7 @@ function visitIdentifierExpression(node: IIdentifierExpression) {
 }
 
 function visitAssignmentExpression(node: IAssignmentExpression) {
-    return `var ${visit(node.id)} = ${visit(node.body)};`;
+    return `let ${visit(node.id)} = ${visit(node.body)};`;
 }
 
 function visitBinaryExpression(node: IBinaryExpression) {

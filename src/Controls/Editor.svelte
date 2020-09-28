@@ -15,7 +15,7 @@
   export let markers = writable([]);
 
   if (markers) {
-    markers.subscribe(m => {
+    markers.subscribe((m) => {
       if (!editor) return;
       var model = editor.getModel();
       monaco.editor.setModelMarkers(model, "", m);
@@ -33,18 +33,18 @@
       wordWrapColumn: 120,
       wordWrap: wordWrap ? "on" : "off",
       minimap: {
-        enabled: true
-      }
+        enabled: true,
+      },
     });
     editor.dragAndDrop = false;
     window.addEventListener("keydown", keyTrap, true);
-    editor.onMouseDown(function(e) {
+    editor.onMouseDown(function (e) {
       if (e.event.ctrlKey && e.event.leftButton) {
         var word = editor.getModel().getWordAtPosition(e.target.position);
         onKeyPress(word);
       }
     });
-    editor.onDidChangeModelContent(function(e) {
+    editor.onDidChangeModelContent(function (e) {
       if (timeout) clearTimeout(timeout);
       timeout = setTimeout(() => {
         dispatch("change", editor.getValue());
@@ -78,8 +78,8 @@
           [
             {
               range: model.getFullModelRange(),
-              text: text
-            }
+              text: text,
+            },
           ]
         );
         editor.pushUndoStop();

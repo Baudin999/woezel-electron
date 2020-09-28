@@ -155,8 +155,8 @@ export function lex(sourceCode: SourceCode, errorSink: ErrorSink = new ErrorSink
     let pushToken = (kind?: SyntaxKind, v: string = value) => {
         tokens.push({
             value: v,
-            lineStart: linePos,
-            lineEnd: lineIndex - 1,
+            columnStart: linePos,
+            columnEnd: lineIndex,
             line,
             fileStart: pos,
             fileEnd: index,
@@ -169,8 +169,8 @@ export function lex(sourceCode: SourceCode, errorSink: ErrorSink = new ErrorSink
     let _consumeSingle = (kind: SyntaxKind) => {
         tokens.push({
             value: _current(),
-            lineStart: linePos,
-            lineEnd: lineIndex - 1,
+            columnStart: linePos,
+            columnEnd: lineIndex + 1,
             line,
             fileStart: pos,
             fileEnd: index + 1,
@@ -255,11 +255,14 @@ export function lex(sourceCode: SourceCode, errorSink: ErrorSink = new ErrorSink
         pushToken(SyntaxKind.StringLiteralToken);
     }
     let _consumeNewline = () => {
+        let __c_1 = _at(-1);
+        let __c0 = _current();
+        let __c1 = _next();
         index++;
         tokens.push({
             value: "\n",
-            lineStart: linePos,
-            lineEnd: 0,
+            columnStart: linePos,
+            columnEnd: linePos + 1,
             line,
             fileStart: pos,
             fileEnd: index,
@@ -274,8 +277,8 @@ export function lex(sourceCode: SourceCode, errorSink: ErrorSink = new ErrorSink
     let _consumeIndent = () => {
         tokens.push({
             value: '\t',
-            lineStart: linePos,
-            lineEnd: lineIndex + tabLength - 1,
+            columnStart: linePos,
+            columnEnd: lineIndex + tabLength,
             line,
             fileStart: pos,
             fileEnd: index,
@@ -343,8 +346,8 @@ export function lex(sourceCode: SourceCode, errorSink: ErrorSink = new ErrorSink
             errorSink.addError(<IError>{
                 message: `Unknown symbol exception: ${_current()} (${_currentCode()})`,
                 position: <IPosition>{
-                    startIndex: index,
-                    endIndex: index + 1,
+                    startColumn: index,
+                    endColumn: index,
                     startLine: line,
                     endLine: line
                 }

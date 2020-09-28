@@ -28,8 +28,8 @@ export function check(ast: IExpression[], errorSink: ErrorSink = new ErrorSink()
             errorSink.addError({
                 message: `Type ${name} already exists, not allowed to declare a variable twice.`,
                 position: {
-                    startIndex: node.id.root.lineStart,
-                    endIndex: node.id.root.lineEnd,
+                    startColumn: node.id.root.columnStart,
+                    endColumn: node.id.root.columnEnd,
                     startLine: node.id.root.line,
                     endLine: node.id.root.line
                 }
@@ -60,12 +60,13 @@ export function check(ast: IExpression[], errorSink: ErrorSink = new ErrorSink()
 
         if (globalDefinition) {
             if (globalDefinition.type !== node.type) {
+                console.log(node)
                 errorSink.addError({
-                    message: `Your variable is defined as a ${Types[globalDefinition.type]} but the inferred type is ${Types[node.type]}. 
+                    message: `Your variable is defined as a '${Types[globalDefinition.type]}' but the inferred type is '${Types[node.type]}'. 
 An expression can't change it's type.`,
                     position: {
-                        startIndex: node.id.root.lineStart,
-                        endIndex: node.id.root.lineStart + 5,
+                        startColumn: node.id.root.columnStart,
+                        endColumn: node.id.root.columnEnd,
                         startLine: node.id.root.line,
                         endLine: node.id.root.line
                     }

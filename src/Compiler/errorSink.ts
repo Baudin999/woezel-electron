@@ -1,7 +1,7 @@
 
 export interface IPosition {
-    startIndex: number;
-    endIndex: number;
+    startColumn: number;
+    endColumn: number;
     startLine: number;
     endLine: number;
 }

@@ -1,13 +1,13 @@
-<script>
+<script type="ts">
+  import { writable } from "svelte/store";
   import { Tabs, Tab, TabList, TabPanel } from "./../Controls/Tabs/index";
   import { Expression, SyntaxKind } from "./../Compiler/types";
   import Editor from "./../Controls/Editor.svelte";
   import StackPanel from "./../Controls/StackPanel.svelte";
   import Panel from "./../Controls/Panel.svelte";
+  import type { IError } from "../Compiler/errorSink";
   import { compile, CompilerContext } from "../Compiler/compiler";
   import { debounce } from "../Services/debounce";
-  import prettier from "prettier";
-  import babel from "@babel/parser";
 
   let txt = "";
   let tokensJson = "";
@@ -15,6 +15,7 @@
   let astJson = "";
   let messages = [];
   let compilationErrors = [];
+  let markers = writable([]);
 
   let textChanged = debounce((event) => {
     console.clear();
@@ -22,12 +23,10 @@
     const text = event.detail;
     localStorage.setItem("code", text);
     try {
-      console.log("start compile");
       const { javascript, tokens, ast, errors } = compile(text, {
         format: false,
         context: CompilerContext.Node,
       });
-      console.log("finished compile");
       const displayTokens = tokens.map((t) => {
         return { ...t, kind: SyntaxKind[t.kind] };
       });
@@ -41,12 +40,24 @@
       var result = Function(javascript)();
       messages = [...messages, result];
       compilationErrors = errors;
+      markers.set(errors.map(mapErrorToken));
     } catch (error) {
+      console.log("Error on compile");
       console.log(error.message);
     } finally {
-      console.log("done...");
+      //
     }
   });
+
+  let mapErrorToken = (e: IError) => {
+    return {
+      startLineNumber: e.position.startLine + 1,
+      endLineNumber: e.position.endLine + 1,
+      startColumn: e.position.startColumn + 1,
+      endColumn: e.position.endColumn + 1,
+      message: e.message,
+    };
+  };
 
   (() => {
     try {
@@ -105,10 +116,10 @@
       </TabList>
       <TabPanel>
         <StackPanel>
-          <Panel flex="3">
-            <Editor on:change={textChanged} text={txt} />
+          <Panel flex={3}>
+            <Editor on:change={textChanged} text={txt} {markers} />
           </Panel>
-          <Panel flex="1">
+          <Panel flex={1}>
             <div style="border-top: 1px solid grey;">
               <ul class="messages">
                 {#each compilationErrors as error}
@@ -133,10 +144,10 @@
 
       <TabPanel>
         <StackPanel>
-          <Panel flex="3">
+          <Panel flex={3}>
             <Editor language="javascript" text={jsText} />
           </Panel>
-          <Panel flex="1">
+          <Panel flex={1}>
             <div style="border-top: 1px solid grey;">
               <ul class="messages">
                 {#each messages as message}

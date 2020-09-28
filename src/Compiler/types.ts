@@ -4,8 +4,8 @@ export interface IToken {
 
     // line information
     line: number;
-    lineStart: number;
-    lineEnd: number;
+    columnStart: number;
+    columnEnd: number;
 
     // text information
     fileStart: number;
@@ -371,8 +371,8 @@ export class Expression implements IExpression {
 export class Token implements IToken {
     value: string;
     line: number;
-    lineStart: number;
-    lineEnd: number;
+    columnStart: number;
+    columnEnd: number;
     fileStart: number;
     fileEnd: number;
     kind: SyntaxKind;
